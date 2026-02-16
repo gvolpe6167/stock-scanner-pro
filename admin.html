@@ -1,0 +1,575 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel de Administración - Stock Scanner Pro</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px 30px;
+            border-radius: 15px;
+            margin-bottom: 30px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        h1 {
+            color: white;
+            font-size: 2rem;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 15px;
+            color: white;
+        }
+
+        .stat-number {
+            font-size: 3rem;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .stat-label {
+            opacity: 0.8;
+            font-size: 0.9rem;
+        }
+
+        .users-table {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 15px;
+            overflow: hidden;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: rgba(0,0,0,0.3);
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            color: white;
+            font-weight: 600;
+        }
+
+        td {
+            padding: 15px;
+            color: white;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .status-badge {
+            padding: 5px 12px;
+            border-radius: 15px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-active {
+            background: #4CAF50;
+        }
+
+        .status-pending {
+            background: #FF9800;
+        }
+
+        .status-expired {
+            background: #f44336;
+        }
+
+        .status-blocked {
+            background: #9E9E9E;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: bold;
+            margin: 0 5px;
+            transition: all 0.3s;
+        }
+
+        .btn-block {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-block:hover {
+            background: #d32f2f;
+        }
+
+        .btn-activate {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-activate:hover {
+            background: #45a049;
+        }
+
+        .btn-logout {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            padding: 10px 20px;
+        }
+
+        .search-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.9);
+        }
+
+        .login-box {
+            max-width: 400px;
+            margin: 100px auto;
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 20px;
+        }
+
+        .login-box h2 {
+            color: white;
+            margin-bottom: 30px;
+            text-align: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            color: white;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+        }
+
+        .btn-login {
+            width: 100%;
+            padding: 14px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        .btn-login:hover {
+            background: #45a049;
+        }
+
+        .loading {
+            text-align: center;
+            color: white;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-top: 4px solid white;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        #adminPanel {
+            display: none;
+        }
+
+        #adminPanel.active {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <!-- Login Screen -->
+    <div id="loginScreen">
+        <div class="login-box">
+            <h2>🔐 Admin Login</h2>
+            <form onsubmit="adminLogin(event)">
+                <div class="form-group">
+                    <label>Email Administrador</label>
+                    <input type="email" id="adminEmail" required>
+                </div>
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="adminPassword" required>
+                </div>
+                <button type="submit" class="btn-login">Iniciar Sesión</button>
+            </form>
+            <p style="color: white; text-align: center; margin-top: 20px; font-size: 0.9rem;">
+                Demo: admin@stockscanner.com / admin123
+            </p>
+        </div>
+    </div>
+
+    <!-- Admin Panel -->
+    <div id="adminPanel">
+        <div class="container">
+            <div class="header">
+                <div>
+                    <h1>🛠 Panel de Administración</h1>
+                    <p style="color: rgba(255,255,255,0.8); margin-top: 5px;">
+                        Stock Scanner Pro
+                    </p>
+                </div>
+                <button class="btn btn-logout" onclick="logout()">Cerrar Sesión</button>
+            </div>
+
+            <div class="stats">
+                <div class="stat-card">
+                    <div class="stat-label">Total Usuarios</div>
+                    <div class="stat-number" id="totalUsers">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Suscripciones Activas</div>
+                    <div class="stat-number" id="activeSubscriptions">0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Ingresos Mensuales</div>
+                    <div class="stat-number" id="monthlyRevenue">$0</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Usuarios Bloqueados</div>
+                    <div class="stat-number" id="blockedUsers">0</div>
+                </div>
+            </div>
+
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="🔍 Buscar usuario por nombre o email..." onkeyup="filterUsers()">
+            </div>
+
+            <div class="users-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Estado</th>
+                            <th>Fecha Expiración</th>
+                            <th>Fecha Registro</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="usersTableBody">
+                        <tr>
+                            <td colspan="6" class="loading">
+                                <div class="spinner"></div>
+                                Cargando usuarios...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:3000/api';
+        let allUsers = [];
+        let adminToken = null;
+
+        // Login de administrador
+        async function adminLogin(event) {
+            event.preventDefault();
+            
+            const email = document.getElementById('adminEmail').value;
+            const password = document.getElementById('adminPassword').value;
+
+            // Demo credentials
+            if (email === 'admin@stockscanner.com' && password === 'admin123') {
+                adminToken = 'demo_admin_token';
+                showAdminPanel();
+                loadUsers();
+            } else {
+                alert('Credenciales incorrectas');
+            }
+        }
+
+        function showAdminPanel() {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('adminPanel').classList.add('active');
+        }
+
+        function logout() {
+            adminToken = null;
+            allUsers = [];
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('adminPanel').classList.remove('active');
+        }
+
+        // Cargar usuarios
+        async function loadUsers() {
+            try {
+                // En producción, hacer llamada real a la API
+                // const response = await fetch(`${API_URL}/admin/users`, {
+                //     headers: { 'Authorization': `Bearer ${adminToken}` }
+                // });
+                // const data = await response.json();
+                // allUsers = data.users;
+
+                // DEMO: Datos simulados
+                allUsers = [
+                    {
+                        id: '1',
+                        name: 'Juan Pérez',
+                        email: 'juan@email.com',
+                        subscription: {
+                            status: 'active',
+                            expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
+                        },
+                        createdAt: '2024-01-15T10:00:00Z'
+                    },
+                    {
+                        id: '2',
+                        name: 'María García',
+                        email: 'maria@email.com',
+                        subscription: {
+                            status: 'active',
+                            expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString()
+                        },
+                        createdAt: '2024-01-20T15:30:00Z'
+                    },
+                    {
+                        id: '3',
+                        name: 'Carlos López',
+                        email: 'carlos@email.com',
+                        subscription: {
+                            status: 'expired',
+                            expiryDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+                        },
+                        createdAt: '2023-12-10T08:00:00Z'
+                    },
+                    {
+                        id: '4',
+                        name: 'Ana Martínez',
+                        email: 'ana@email.com',
+                        subscription: {
+                            status: 'pending',
+                            expiryDate: null
+                        },
+                        createdAt: '2024-02-01T12:00:00Z'
+                    },
+                    {
+                        id: '5',
+                        name: 'Luis Rodríguez',
+                        email: 'luis@email.com',
+                        subscription: {
+                            status: 'blocked',
+                            expiryDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+                        },
+                        createdAt: '2023-11-05T14:20:00Z'
+                    }
+                ];
+
+                updateStats();
+                renderUsers(allUsers);
+            } catch (error) {
+                console.error('Error cargando usuarios:', error);
+            }
+        }
+
+        // Actualizar estadísticas
+        function updateStats() {
+            const total = allUsers.length;
+            const active = allUsers.filter(u => u.subscription?.status === 'active').length;
+            const blocked = allUsers.filter(u => u.subscription?.status === 'blocked').length;
+            const revenue = active * 20;
+
+            document.getElementById('totalUsers').textContent = total;
+            document.getElementById('activeSubscriptions').textContent = active;
+            document.getElementById('monthlyRevenue').textContent = `$${revenue}`;
+            document.getElementById('blockedUsers').textContent = blocked;
+        }
+
+        // Renderizar tabla de usuarios
+        function renderUsers(users) {
+            const tbody = document.getElementById('usersTableBody');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay usuarios</td></tr>';
+                return;
+            }
+
+            tbody.innerHTML = users.map(user => {
+                const statusClass = `status-${user.subscription?.status || 'pending'}';
+                const statusText = {
+                    'active': 'Activa',
+                    'pending': 'Pendiente',
+                    'expired': 'Expirada',
+                    'blocked': 'Bloqueada'
+                }[user.subscription?.status] || 'Desconocido';
+
+                const expiryDate = user.subscription?.expiryDate 
+                    ? new Date(user.subscription.expiryDate).toLocaleDateString('es-ES')
+                    : 'N/A';
+
+                const createdDate = new Date(user.createdAt).toLocaleDateString('es-ES');
+
+                return `
+                    <tr>
+                        <td><strong>${user.name}</strong></td>
+                        <td>${user.email}</td>
+                        <td>
+                            <span class="status-badge ${statusClass}">${statusText}</span>
+                        </td>
+                        <td>${expiryDate}</td>
+                        <td>${createdDate}</td>
+                        <td>
+                            ${user.subscription?.status !== 'blocked' 
+                                ? `<button class="btn btn-block" onclick="blockUser('${user.id}', '${user.name}')">Bloquear</button>`
+                                : `<button class="btn btn-activate" onclick="activateUser('${user.id}', '${user.name}')">Activar</button>`
+                            }
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+
+        // Filtrar usuarios
+        function filterUsers() {
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            const filtered = allUsers.filter(user => 
+                user.name.toLowerCase().includes(searchTerm) ||
+                user.email.toLowerCase().includes(searchTerm)
+            );
+            renderUsers(filtered);
+        }
+
+        // Bloquear usuario
+        async function blockUser(userId, userName) {
+            if (!confirm(`¿Estás seguro de bloquear a ${userName}?`)) {
+                return;
+            }
+
+            try {
+                // En producción:
+                // await fetch(`${API_URL}/admin/block-user`, {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json',
+                //         'Authorization': `Bearer ${adminToken}`
+                //     },
+                //     body: JSON.stringify({ userId })
+                // });
+
+                // DEMO: Actualizar localmente
+                const user = allUsers.find(u => u.id === userId);
+                if (user) {
+                    user.subscription.status = 'blocked';
+                    updateStats();
+                    renderUsers(allUsers);
+                    alert(`Usuario ${userName} bloqueado exitosamente`);
+                }
+            } catch (error) {
+                alert('Error bloqueando usuario');
+                console.error(error);
+            }
+        }
+
+        // Activar usuario
+        async function activateUser(userId, userName) {
+            if (!confirm(`¿Activar la suscripción de ${userName}?`)) {
+                return;
+            }
+
+            try {
+                // En producción:
+                // await fetch(`${API_URL}/admin/activate-user`, {
+                //     method: 'POST',
+                //     headers: {
+                //         'Content-Type': 'application/json',
+                //         'Authorization': `Bearer ${adminToken}`
+                //     },
+                //     body: JSON.stringify({ userId })
+                // });
+
+                // DEMO: Actualizar localmente
+                const user = allUsers.find(u => u.id === userId);
+                if (user) {
+                    user.subscription.status = 'active';
+                    user.subscription.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+                    updateStats();
+                    renderUsers(allUsers);
+                    alert(`Usuario ${userName} activado exitosamente`);
+                }
+            } catch (error) {
+                alert('Error activando usuario');
+                console.error(error);
+            }
+        }
+    </script>
+</body>
+</html>

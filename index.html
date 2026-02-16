@@ -1,0 +1,627 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Stock Scanner Pro - Análisis en Tiempo Real</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: #fff;
+            min-height: 100vh;
+        }
+
+        .auth-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .auth-box {
+            background: rgba(255,255,255,0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+        }
+
+        .auth-box h2 {
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            background: rgba(255,255,255,0.9);
+            color: #333;
+        }
+
+        .form-group input:focus {
+            outline: 2px solid #4CAF50;
+        }
+
+        .btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            font-size: 1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #45a049;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: transparent;
+            color: white;
+            border: 2px solid white;
+            margin-top: 10px;
+        }
+
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.1);
+        }
+
+        .subscription-info {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 20px;
+            text-align: center;
+        }
+
+        .price {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #4CAF50;
+            margin: 10px 0;
+        }
+
+        .features {
+            text-align: left;
+            margin-top: 20px;
+        }
+
+        .features li {
+            margin: 10px 0;
+            padding-left: 25px;
+            position: relative;
+        }
+
+        .features li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .dashboard {
+            display: none;
+            padding: 20px;
+        }
+
+        .dashboard.active {
+            display: block;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .top-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 25px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .subscription-status {
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.85rem;
+            font-weight: bold;
+        }
+
+        .status-active {
+            background: #4CAF50;
+        }
+
+        .status-expired {
+            background: #f44336;
+        }
+
+        .status-warning {
+            background: #FF9800;
+        }
+
+        .btn-logout {
+            padding: 10px 20px;
+            background: #f44336;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+
+        header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            text-align: center;
+        }
+
+        .update-info {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(255,255,255,0.1);
+            padding: 15px 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .add-ticker-section {
+            background: rgba(255,255,255,0.1);
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+        }
+
+        .add-ticker-form {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .add-ticker-form input {
+            flex: 1;
+            min-width: 200px;
+            padding: 12px;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            text-transform: uppercase;
+        }
+
+        .add-ticker-form button {
+            padding: 12px 30px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-size: 1rem;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .scanner-table {
+            background: rgba(255,255,255,0.1);
+            border-radius: 10px;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+            overflow-x: auto;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: rgba(0,0,0,0.3);
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 0.9rem;
+            white-space: nowrap;
+        }
+
+        td {
+            padding: 15px;
+            border-top: 1px solid rgba(255,255,255,0.1);
+        }
+
+        tr:hover {
+            background: rgba(255,255,255,0.05);
+        }
+
+        .ticker-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
+
+        .ticker-link {
+            color: #fff;
+            text-decoration: none;
+            font-weight: bold;
+            font-size: 1.1rem;
+            padding: 5px 10px;
+            border-radius: 5px;
+            transition: all 0.3s;
+            display: inline-block;
+        }
+
+        .ticker-link:hover {
+            background: rgba(255,255,255,0.2);
+            transform: scale(1.05);
+            color: #4CAF50;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: bold;
+        }
+
+        .type-stock {
+            background: #2196F3;
+        }
+
+        .type-etf {
+            background: #9C27B0;
+        }
+
+        .signal-muy-favorable {
+            background: #1B5E20;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .signal-favorable {
+            background: #4CAF50;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .signal-interesante {
+            background: #2196F3;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .signal-considerar {
+            background: #FF9800;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .signal-no-favorable {
+            background: #f44336;
+            color: white;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: inline-block;
+        }
+
+        .nivel-bar {
+            width: 100%;
+            height: 8px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 4px;
+            overflow: hidden;
+        }
+
+        .nivel-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.3s;
+        }
+
+        .nivel-high {
+            background: #4CAF50;
+        }
+
+        .nivel-medium {
+            background: #FF9800;
+        }
+
+        .nivel-low {
+            background: #f44336;
+        }
+
+        .sma-status {
+            font-size: 0.85rem;
+            padding: 4px 8px;
+            border-radius: 4px;
+            display: inline-block;
+        }
+
+        .sma-above {
+            background: rgba(76, 175, 80, 0.3);
+            color: #4CAF50;
+        }
+
+        .sma-below {
+            background: rgba(244, 67, 54, 0.3);
+            color: #f44336;
+        }
+
+        .sma-mixed {
+            background: rgba(33, 150, 243, 0.3);
+            color: #2196F3;
+        }
+
+        .delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .price-positive {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+
+        .price-negative {
+            color: #f44336;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+
+        .spinner {
+            border: 4px solid rgba(255,255,255,0.3);
+            border-radius: 50%;
+            border-top: 4px solid white;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error-message {
+            background: #f44336;
+            color: white;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 15px;
+            display: none;
+        }
+
+        .error-message.show {
+            display: block;
+        }
+
+        @media (max-width: 768px) {
+            .auth-box {
+                padding: 30px 20px;
+            }
+
+            header h1 {
+                font-size: 1.8rem;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            th, td {
+                padding: 10px 8px;
+                font-size: 0.85rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="authScreen" class="auth-container">
+        <div class="auth-box">
+            <h2>🚀 Stock Scanner Pro</h2>
+            
+            <div id="errorMessage" class="error-message"></div>
+
+            <div id="loginForm">
+                <form onsubmit="login(event)">
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
+                </form>
+                <button class="btn btn-secondary" onclick="showRegister()">Crear Cuenta Nueva</button>
+            </div>
+
+            <div id="registerForm" style="display: none;">
+                <form onsubmit="register(event)">
+                    <div class="form-group">
+                        <label>Nombre completo</label>
+                        <input type="text" id="registerName" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input type="email" id="registerEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label>Contraseña</label>
+                        <input type="password" id="registerPassword" required minlength="6">
+                    </div>
+                    
+                    <div class="subscription-info">
+                        <h3>📊 Suscripción Mensual</h3>
+                        <div class="price">$20<span style="font-size: 1rem;">/mes</span></div>
+                        <ul class="features">
+                            <li>Scanner en tiempo real con Yahoo Finance</li>
+                            <li>EMAs 20, 50, 100, 200 (datos 1 año)</li>
+                            <li>Señales específicas de compra/venta</li>
+                            <li>Links directos a Yahoo Finance</li>
+                            <li>Tickers ilimitados personalizados</li>
+                            <li>Auto-actualización cada 5 min</li>
+                        </ul>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary" style="margin-top: 20px;">
+                        Registrarse y Pagar $20
+                    </button>
+                </form>
+                <button class="btn btn-secondary" onclick="showLogin()">Ya tengo cuenta</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="dashboardScreen" class="dashboard">
+        <div class="top-bar">
+            <div class="user-info">
+                <div>
+                    <strong id="userName">Usuario</strong>
+                    <div style="font-size: 0.85rem; opacity: 0.8;" id="userEmail"></div>
+                </div>
+                <div>
+                    <span class="subscription-status" id="subscriptionStatus">
+                        ✓ Activa
+                    </span>
+                    <div style="font-size: 0.85rem; margin-top: 5px;" id="subscriptionExpiry"></div>
+                </div>
+            </div>
+            <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
+        </div>
+
+        <div class="container">
+            <header>
+                <h1>📊 Stock Scanner Pro</h1>
+                <p>Análisis técnico con EMAs 20,50,100,200 - Datos de 1 año</p>
+            </header>
+
+            <div class="update-info">
+                <div class="last-update">
+                    Última actualización: <span id="lastUpdate">Cargando...</span>
+                </div>
+                <div>
+                    Auto-actualización: <strong>ACTIVA</strong> (cada 5 min)
+                </div>
+            </div>
+
+            <div class="add-ticker-section">
+                <h3 style="margin-bottom: 15px;">➕ Agregar Ticker Personalizado</h3>
+                <div class="add-ticker-form">
+                    <input type="text" id="newTicker" placeholder="Ej: AAPL, MSFT, QQQ..." />
+                    <button onclick="addTicker()">Agregar</button>
+                </div>
+                <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">
+                    💡 Click en el ticker para ver análisis completo en Yahoo Finance
+                </p>
+            </div>
+
+            <div class="scanner-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>TICKER</th>
+                            <th>Tipo</th>
+                            <th>RSI</th>
+                            <th>Precio</th>
+                            <th>% Cambio</th>
+                            <th>Señal</th>
+                            <th>Nivel LC</th>
+                            <th>Posición EMA</th>
+                            <th>Acción</th>
+                        </tr>
+                    </thead>
+                    <tbody id="scannerBody">
+                        <tr>
+                            <td colspan="9" class="loading">
+                                <div class="spinner"></div>
+                                Cargando datos del mercado...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
