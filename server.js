@@ -1,4 +1,4 @@
-// server.js - Señales basadas en posición EMA
+// server.js - Con panel de administración
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -28,8 +28,9 @@ async function initDatabase() {
                 name VARCHAR(255) NOT NULL,
                 email VARCHAR(255) UNIQUE NOT NULL,
                 password VARCHAR(255) NOT NULL,
-                subscription_status VARCHAR(50) DEFAULT 'active',
+                subscription_status VARCHAR(50) DEFAULT 'trial',
                 subscription_expiry TIMESTAMP,
+                is_admin BOOLEAN DEFAULT FALSE,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         `);
@@ -42,6 +43,21 @@ async function initDatabase() {
                 UNIQUE(user_id, ticker)
             )
         `);
+
+        // Crear cuenta de administrador si no existe
+        const adminEmail = 'gvolpe@gmail.com';
+        const adminPassword = 'Admin2024!Segura';
+        const adminExists = await pool.query('SELECT * FROM users WHERE email = $1', [adminEmail]);
+        
+        if (adminExists.rows.length === 0) {
+            const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            await pool.query(
+                'INSERT INTO users (name, email, password, subscription_status, is_admin, subscription_expiry) VALUES ($1, $2, $3, $4, $5, $6)',
+                ['Administrador', adminEmail, hashedPassword, 'active', true, new Date('2099-12-31')]
+            );
+            console.log('✅ Cuenta de administrador creada');
+        }
+
         console.log('✅ Base de datos inicializada correctamente');
     } catch (error) {
         console.error('Error inicializando base de datos:', error);
@@ -61,40 +77,27 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// Yahoo Finance con múltiples métodos
+function authenticateAdmin(req, res, next) {
+    authenticateToken(req, res, async () => {
+        try {
+            const result = await pool.query('SELECT is_admin FROM users WHERE id = $1', [req.user.id]);
+            if (result.rows.length === 0 || !result.rows[0].is_admin) {
+                return res.status(403).json({ message: 'Acceso denegado. Solo administradores.' });
+            }
+            next();
+        } catch (error) {
+            res.status(500).json({ message: 'Error verificando permisos' });
+        }
+    });
+}
+
 async function getYahooData(ticker) {
-    // Método 1: Query1
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&includePrePost=false`;
         const response = await fetch(url, {
             headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
                 'Accept': '*/*',
-                'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-                'Referer': 'https://finance.yahoo.com/',
-                'Origin': 'https://finance.yahoo.com',
-            },
-            timeout: 10000
-        });
-        if (response.ok) {
-            const data = await response.json();
-            if (data.chart?.result?.[0]) {
-                const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
-                if (closes.length >= 50) {
-                    console.log(`✅ Método 1 exitoso para ${ticker}`);
-                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
-                }
-            }
-        }
-    } catch (e) { console.log(`❌ Método 1 falló: ${e.message}`); }
-
-    // Método 2: Query2
-    try {
-        const url = `https://query2.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`;
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
-                'Accept': 'application/json',
                 'Referer': 'https://finance.yahoo.com/',
             },
             timeout: 10000
@@ -104,41 +107,12 @@ async function getYahooData(ticker) {
             if (data.chart?.result?.[0]) {
                 const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
-                    console.log(`✅ Método 2 exitoso para ${ticker}`);
                     return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) { console.log(`❌ Método 2 falló: ${e.message}`); }
+    } catch (e) {}
 
-    // Método 3: CSV
-    try {
-        const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?range=1y&interval=1d&events=history`;
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
-                'Referer': 'https://finance.yahoo.com/',
-            },
-            timeout: 10000
-        });
-        if (response.ok) {
-            const text = await response.text();
-            const lines = text.trim().split('\n');
-            if (lines.length > 10) {
-                const closes = [];
-                for (let i = 1; i < lines.length; i++) {
-                    const closePrice = parseFloat(lines[i].split(',')[4]);
-                    if (!isNaN(closePrice) && closePrice > 0) closes.push(closePrice);
-                }
-                if (closes.length >= 50) {
-                    console.log(`✅ Método 3 (CSV) exitoso para ${ticker}`);
-                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
-                }
-            }
-        }
-    } catch (e) { console.log(`❌ Método 3 falló: ${e.message}`); }
-
-    // Método 4: Proxy
     try {
         const yahooUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`);
         const url = `https://api.allorigins.win/get?url=${yahooUrl}`;
@@ -149,12 +123,11 @@ async function getYahooData(ticker) {
             if (data.chart?.result?.[0]) {
                 const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
-                    console.log(`✅ Método 4 (proxy) exitoso para ${ticker}`);
                     return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) { console.log(`❌ Método 4 falló: ${e.message}`); }
+    } catch (e) {}
 
     return null;
 }
@@ -180,22 +153,17 @@ function calculateRSI(prices, period = 14) {
     const avgGain = gains / period;
     const avgLoss = losses / period;
     if (avgLoss === 0) return 100;
-    const rs = avgGain / avgLoss;
-    return 100 - (100 / (1 + rs));
+    return 100 - (100 / (1 + avgGain / avgLoss));
 }
 
-// NUEVA LÓGICA: Señal basada en posición EMA
 function determineSignal(price, ema20, ema50, ema100, ema200) {
     const belowAll = price < ema200 && price < ema100 && price < ema50 && price < ema20;
     const aboveAll = price > ema200 && price > ema100 && price > ema50 && price > ema20;
-
     if (belowAll) return 'Muy Favorable';
     if (price >= ema200 && price < ema100) return 'Favorable';
     if (price >= ema100 && price < ema50) return 'Interesante';
     if (price >= ema50 && price < ema20) return 'A Considerar';
     if (aboveAll) return 'No Favorable';
-
-    // Casos mixtos basados en EMA200
     if (price < ema200) return 'Muy Favorable';
     if (price < ema100) return 'Favorable';
     if (price < ema50) return 'Interesante';
@@ -203,23 +171,17 @@ function determineSignal(price, ema20, ema50, ema100, ema200) {
     return 'No Favorable';
 }
 
-// Nivel LC basado en señal + RSI
 function calculateNivelLC(signal, rsi) {
     let nivelLC = 50;
-
-    // Base según señal
     if (signal === 'Muy Favorable') nivelLC = 85;
     else if (signal === 'Favorable') nivelLC = 70;
     else if (signal === 'Interesante') nivelLC = 50;
     else if (signal === 'A Considerar') nivelLC = 35;
     else if (signal === 'No Favorable') nivelLC = 20;
-
-    // Ajuste por RSI
     if (rsi < 25) nivelLC = Math.min(100, nivelLC + 10);
     else if (rsi < 35) nivelLC = Math.min(100, nivelLC + 5);
     else if (rsi > 75) nivelLC = Math.max(0, nivelLC - 10);
     else if (rsi > 65) nivelLC = Math.max(0, nivelLC - 5);
-
     return Math.round(Math.min(100, Math.max(0, nivelLC)));
 }
 
@@ -235,21 +197,39 @@ function getSMAPosition(price, ema20, ema50, ema100, ema200) {
     return 'Posición mixta entre EMAs';
 }
 
+// RUTAS DE AUTENTICACIÓN
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
         if (!name || !email || !password) return res.status(400).json({ message: 'Todos los campos son requeridos' });
+        
         const existingUser = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (existingUser.rows.length > 0) return res.status(400).json({ message: 'Este email ya está registrado' });
+        
         const hashedPassword = await bcrypt.hash(password, 10);
-        const expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
+        const trialExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+        
         const result = await pool.query(
             'INSERT INTO users (name, email, password, subscription_status, subscription_expiry) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, subscription_status, subscription_expiry',
-            [name, email, hashedPassword, 'active', expiryDate]
+            [name, email, hashedPassword, 'trial', trialExpiry]
         );
+        
         const user = result.rows[0];
         const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({ message: 'Registro exitoso', token, user: { id: user.id, name: user.name, email: user.email, subscription: { status: user.subscription_status, expiryDate: user.subscription_expiry } } });
+        
+        res.json({
+            message: 'Registro exitoso - 7 días de prueba gratis',
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                subscription: {
+                    status: user.subscription_status,
+                    expiryDate: user.subscription_expiry
+                }
+            }
+        });
     } catch (error) {
         console.error('Error en registro:', error);
         res.status(500).json({ message: 'Error en el servidor' });
@@ -261,11 +241,36 @@ app.post('/api/auth/login', async (req, res) => {
         const { email, password } = req.body;
         const result = await pool.query('SELECT * FROM users WHERE email = $1', [email]);
         if (result.rows.length === 0) return res.status(401).json({ message: 'Credenciales incorrectas' });
+        
         const user = result.rows[0];
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) return res.status(401).json({ message: 'Credenciales incorrectas' });
+        
+        // Verificar si expiró la suscripción
+        const now = new Date();
+        const expiry = new Date(user.subscription_expiry);
+        
+        if (expiry < now && user.subscription_status !== 'blocked' && !user.is_admin) {
+            await pool.query('UPDATE users SET subscription_status = $1 WHERE id = $2', ['expired', user.id]);
+            user.subscription_status = 'expired';
+        }
+        
         const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '30d' });
-        res.json({ message: 'Login exitoso', token, user: { id: user.id, name: user.name, email: user.email, subscription: { status: user.subscription_status, expiryDate: user.subscription_expiry } } });
+        
+        res.json({
+            message: 'Login exitoso',
+            token,
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                isAdmin: user.is_admin || false,
+                subscription: {
+                    status: user.subscription_status,
+                    expiryDate: user.subscription_expiry
+                }
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error en el servidor' });
     }
@@ -275,13 +280,89 @@ app.get('/api/auth/validate', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT * FROM users WHERE id = $1', [req.user.id]);
         if (result.rows.length === 0) return res.status(404).json({ message: 'Usuario no encontrado' });
+        
         const user = result.rows[0];
-        res.json({ user: { id: user.id, name: user.name, email: user.email, subscription: { status: user.subscription_status, expiryDate: user.subscription_expiry } } });
+        const now = new Date();
+        const expiry = new Date(user.subscription_expiry);
+        
+        if (expiry < now && user.subscription_status !== 'blocked' && !user.is_admin) {
+            await pool.query('UPDATE users SET subscription_status = $1 WHERE id = $2', ['expired', user.id]);
+            user.subscription_status = 'expired';
+        }
+        
+        res.json({
+            user: {
+                id: user.id,
+                name: user.name,
+                email: user.email,
+                isAdmin: user.is_admin || false,
+                subscription: {
+                    status: user.subscription_status,
+                    expiryDate: user.subscription_expiry
+                }
+            }
+        });
     } catch (error) {
         res.status(500).json({ message: 'Error en el servidor' });
     }
 });
 
+// RUTAS DE ADMINISTRACIÓN
+app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
+    try {
+        const result = await pool.query(
+            'SELECT id, name, email, subscription_status, subscription_expiry, created_at FROM users WHERE is_admin = FALSE ORDER BY created_at DESC'
+        );
+        res.json({ users: result.rows });
+    } catch (error) {
+        res.status(500).json({ message: 'Error obteniendo usuarios' });
+    }
+});
+
+app.post('/api/admin/activate-user', authenticateAdmin, async (req, res) => {
+    try {
+        const { userId, days } = req.body;
+        const daysToAdd = days || 30;
+        const newExpiry = new Date(Date.now() + daysToAdd * 24 * 60 * 60 * 1000);
+        
+        await pool.query(
+            'UPDATE users SET subscription_status = $1, subscription_expiry = $2 WHERE id = $3',
+            ['active', newExpiry, userId]
+        );
+        
+        res.json({ message: `Usuario activado por ${daysToAdd} días` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error activando usuario' });
+    }
+});
+
+app.post('/api/admin/block-user', authenticateAdmin, async (req, res) => {
+    try {
+        const { userId } = req.body;
+        await pool.query('UPDATE users SET subscription_status = $1 WHERE id = $2', ['blocked', userId]);
+        res.json({ message: 'Usuario bloqueado' });
+    } catch (error) {
+        res.status(500).json({ message: 'Error bloqueando usuario' });
+    }
+});
+
+app.post('/api/admin/extend-trial', authenticateAdmin, async (req, res) => {
+    try {
+        const { userId, days } = req.body;
+        const daysToAdd = days || 7;
+        
+        const userResult = await pool.query('SELECT subscription_expiry FROM users WHERE id = $1', [userId]);
+        const currentExpiry = new Date(userResult.rows[0].subscription_expiry);
+        const newExpiry = new Date(currentExpiry.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
+        
+        await pool.query('UPDATE users SET subscription_expiry = $1 WHERE id = $2', [newExpiry, userId]);
+        res.json({ message: `Suscripción extendida por ${daysToAdd} días` });
+    } catch (error) {
+        res.status(500).json({ message: 'Error extendiendo suscripción' });
+    }
+});
+
+// RUTAS DE TICKERS
 app.get('/api/tickers', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT ticker FROM user_tickers WHERE user_id = $1', [req.user.id]);
@@ -305,49 +386,42 @@ app.post('/api/tickers', authenticateToken, async (req, res) => {
     }
 });
 
+// RUTA DE DATOS DE MERCADO
 app.post('/api/market-data', authenticateToken, async (req, res) => {
     try {
+        const userResult = await pool.query('SELECT subscription_status, is_admin FROM users WHERE id = $1', [req.user.id]);
+        const user = userResult.rows[0];
+        
+        if (!user.is_admin && user.subscription_status !== 'active' && user.subscription_status !== 'trial') {
+            return res.status(403).json({ message: 'Suscripción expirada o bloqueada' });
+        }
+        
         const { tickers } = req.body;
         const marketData = [];
 
         for (const ticker of tickers) {
             try {
-                console.log(`📊 Obteniendo datos para ${ticker}...`);
                 const yahooData = await getYahooData(ticker);
-
                 if (yahooData && yahooData.closes.length >= 50) {
                     const currentPrice = yahooData.currentPrice;
                     const previousPrice = yahooData.previousPrice;
                     const changePercent = ((currentPrice - previousPrice) / previousPrice * 100).toFixed(2);
-
                     const ema20 = calculateEMA(yahooData.closes, 20);
                     const ema50 = calculateEMA(yahooData.closes, 50);
                     const ema100 = yahooData.closes.length >= 100 ? calculateEMA(yahooData.closes, 100) : ema50;
                     const ema200 = yahooData.closes.length >= 200 ? calculateEMA(yahooData.closes, 200) : ema100;
-
                     const rsi = Math.round(calculateRSI(yahooData.closes.slice(-50), 14));
-
-                    // NUEVA LÓGICA: señal basada en posición EMA
                     const signal = determineSignal(currentPrice, ema20, ema50, ema100, ema200);
                     const smaPosition = getSMAPosition(currentPrice, ema20, ema50, ema100, ema200);
                     const nivelLC = calculateNivelLC(signal, rsi);
-
                     const etfs = ['JEPQ', 'QQQM', 'SCHG', 'SPY', 'VOO', 'QQQ', 'VTI', 'IVV', 'SPYM', 'SPMO', 'SCHD'];
                     const type = etfs.includes(ticker.toUpperCase()) ? 'ETF' : 'Stock';
-
                     marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi, signal, nivelLC, smaPosition });
-                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi}, EMA20=${ema20?.toFixed(2)}, Señal=${signal}`);
                 } else {
-                    throw new Error('No se pudieron obtener datos');
+                    throw new Error('Datos insuficientes');
                 }
             } catch (error) {
-                console.error(`❌ Error con ${ticker}:`, error.message);
-                marketData.push({
-                    ticker, type: 'Stock',
-                    price: 'N/A', changePercent: '0.00',
-                    rsi: 50, signal: 'Interesante',
-                    nivelLC: 50, smaPosition: 'Actualizando...'
-                });
+                marketData.push({ ticker, type: 'Stock', price: 'N/A', changePercent: '0.00', rsi: 50, signal: 'Interesante', nivelLC: 50, smaPosition: 'Actualizando...' });
             }
         }
         res.json({ data: marketData });
@@ -358,6 +432,7 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Modo ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📈 Señales basadas en posición EMA (20,50,100,200)`);
+    console.log(`📊 Stock Scanner Pro con Panel de Administración`);
+    console.log(`🔐 Admin: gvolpe@gmail.com`);
+    console.log(`🎁 Prueba gratis: 7 días`);
 });

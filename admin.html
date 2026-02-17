@@ -12,31 +12,52 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             min-height: 100vh;
             padding: 20px;
         }
 
         .container {
-            max-width: 1200px;
+            max-width: 1400px;
             margin: 0 auto;
         }
 
         .header {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 20px 30px;
+            background: white;
+            padding: 30px;
             border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
             margin-bottom: 30px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+            text-align: center;
         }
 
-        h1 {
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+        }
+
+        .logout-btn {
+            background: #e74c3c;
             color: white;
-            font-size: 2rem;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 1rem;
+            margin-top: 15px;
+            transition: all 0.3s;
+        }
+
+        .logout-btn:hover {
+            background: #c0392b;
+            transform: translateY(-2px);
         }
 
         .stats {
@@ -47,29 +68,38 @@
         }
 
         .stat-card {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            background: white;
             padding: 25px;
             border-radius: 15px;
-            color: white;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            text-align: center;
         }
 
-        .stat-number {
-            font-size: 3rem;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-
-        .stat-label {
-            opacity: 0.8;
+        .stat-card h3 {
+            color: #666;
             font-size: 0.9rem;
+            text-transform: uppercase;
+            margin-bottom: 10px;
+        }
+
+        .stat-card .number {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #667eea;
         }
 
         .users-table {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            background: white;
             border-radius: 15px;
-            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+            padding: 30px;
+            overflow-x: auto;
+        }
+
+        .users-table h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.8rem;
         }
 
         table {
@@ -77,115 +107,106 @@
             border-collapse: collapse;
         }
 
-        thead {
-            background: rgba(0,0,0,0.3);
-        }
-
         th {
+            background: #667eea;
+            color: white;
             padding: 15px;
             text-align: left;
-            color: white;
             font-weight: 600;
         }
 
         td {
             padding: 15px;
-            color: white;
-            border-top: 1px solid rgba(255,255,255,0.1);
+            border-bottom: 1px solid #eee;
         }
 
         tr:hover {
-            background: rgba(255,255,255,0.05);
+            background: #f8f9fa;
         }
 
-        .status-badge {
-            padding: 5px 12px;
-            border-radius: 15px;
+        .status {
+            padding: 6px 12px;
+            border-radius: 20px;
             font-size: 0.85rem;
-            font-weight: bold;
+            font-weight: 600;
+            display: inline-block;
         }
 
-        .status-active {
-            background: #4CAF50;
+        .status.active {
+            background: #d4edda;
+            color: #155724;
         }
 
-        .status-pending {
-            background: #FF9800;
+        .status.trial {
+            background: #fff3cd;
+            color: #856404;
         }
 
-        .status-expired {
-            background: #f44336;
+        .status.expired {
+            background: #f8d7da;
+            color: #721c24;
         }
 
-        .status-blocked {
-            background: #9E9E9E;
+        .status.blocked {
+            background: #d6d8db;
+            color: #383d41;
         }
 
-        .btn {
+        .action-btn {
             padding: 8px 16px;
+            margin: 0 5px;
             border: none;
             border-radius: 6px;
             cursor: pointer;
             font-size: 0.85rem;
-            font-weight: bold;
-            margin: 0 5px;
+            font-weight: 600;
             transition: all 0.3s;
         }
 
-        .btn-block {
-            background: #f44336;
+        .activate-btn {
+            background: #28a745;
             color: white;
         }
 
-        .btn-block:hover {
-            background: #d32f2f;
+        .activate-btn:hover {
+            background: #218838;
+            transform: translateY(-2px);
         }
 
-        .btn-activate {
-            background: #4CAF50;
+        .block-btn {
+            background: #dc3545;
             color: white;
         }
 
-        .btn-activate:hover {
-            background: #45a049;
+        .block-btn:hover {
+            background: #c82333;
+            transform: translateY(-2px);
         }
 
-        .btn-logout {
-            background: rgba(255,255,255,0.2);
+        .extend-btn {
+            background: #17a2b8;
             color: white;
-            padding: 10px 20px;
         }
 
-        .search-box {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
-            padding: 20px;
-            border-radius: 15px;
-            margin-bottom: 20px;
+        .extend-btn:hover {
+            background: #138496;
+            transform: translateY(-2px);
         }
 
-        .search-box input {
-            width: 100%;
-            padding: 12px 15px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            background: rgba(255,255,255,0.9);
-        }
-
-        .login-box {
+        .login-screen {
             max-width: 400px;
             margin: 100px auto;
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            background: white;
             padding: 40px;
-            border-radius: 20px;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
         }
 
-        .login-box h2 {
-            color: white;
-            margin-bottom: 30px;
+        .login-screen h2 {
+            color: #667eea;
             text-align: center;
+            margin-bottom: 30px;
+            font-size: 2rem;
         }
 
         .form-group {
@@ -194,303 +215,250 @@
 
         .form-group label {
             display: block;
-            color: white;
             margin-bottom: 8px;
-            font-weight: 500;
+            color: #333;
+            font-weight: 600;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px 15px;
-            border: none;
+            padding: 12px;
+            border: 2px solid #ddd;
             border-radius: 8px;
             font-size: 1rem;
+            transition: border 0.3s;
         }
 
-        .btn-login {
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .login-btn {
             width: 100%;
             padding: 14px;
-            background: #4CAF50;
+            background: #667eea;
             color: white;
             border: none;
             border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
+            font-size: 1.1rem;
+            font-weight: 600;
             cursor: pointer;
+            transition: all 0.3s;
         }
 
-        .btn-login:hover {
-            background: #45a049;
+        .login-btn:hover {
+            background: #5568d3;
+            transform: translateY(-2px);
         }
 
-        .loading {
-            text-align: center;
-            color: white;
-            padding: 40px;
-        }
-
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.3);
-            border-top: 4px solid white;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
-
-        #adminPanel {
+        .error-message {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 12px;
+            border-radius: 8px;
+            margin-bottom: 20px;
             display: none;
         }
 
-        #adminPanel.active {
+        .error-message.show {
             display: block;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .days-input {
+            width: 80px;
+            padding: 8px;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            margin: 0 5px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
-    <!-- Login Screen -->
-    <div id="loginScreen">
-        <div class="login-box">
-            <h2>🔐 Admin Login</h2>
-            <form onsubmit="adminLogin(event)">
-                <div class="form-group">
-                    <label>Email Administrador</label>
-                    <input type="email" id="adminEmail" required>
-                </div>
-                <div class="form-group">
-                    <label>Contraseña</label>
-                    <input type="password" id="adminPassword" required>
-                </div>
-                <button type="submit" class="btn-login">Iniciar Sesión</button>
-            </form>
-            <p style="color: white; text-align: center; margin-top: 20px; font-size: 0.9rem;">
-                Demo: admin@stockscanner.com / admin123
-            </p>
-        </div>
+    <!-- PANTALLA DE LOGIN -->
+    <div id="loginScreen" class="login-screen">
+        <h2>🔐 Panel de Admin</h2>
+        <div id="loginError" class="error-message"></div>
+        <form id="loginForm" onsubmit="login(event)">
+            <div class="form-group">
+                <label>Email de Administrador</label>
+                <input type="email" id="adminEmail" required>
+            </div>
+            <div class="form-group">
+                <label>Contraseña</label>
+                <input type="password" id="adminPassword" required>
+            </div>
+            <button type="submit" class="login-btn">Iniciar Sesión</button>
+        </form>
     </div>
 
-    <!-- Admin Panel -->
-    <div id="adminPanel">
-        <div class="container">
-            <div class="header">
-                <div>
-                    <h1>🛠 Panel de Administración</h1>
-                    <p style="color: rgba(255,255,255,0.8); margin-top: 5px;">
-                        Stock Scanner Pro
-                    </p>
-                </div>
-                <button class="btn btn-logout" onclick="logout()">Cerrar Sesión</button>
-            </div>
+    <!-- PANTALLA DE ADMINISTRACIÓN -->
+    <div id="adminScreen" class="container hidden">
+        <div class="header">
+            <h1>📊 Panel de Administración</h1>
+            <p>Stock Scanner Pro - Gestión de Usuarios</p>
+            <p style="margin-top: 10px; color: #667eea; font-weight: 600;">👤 <span id="adminName"></span></p>
+            <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
+        </div>
 
-            <div class="stats">
-                <div class="stat-card">
-                    <div class="stat-label">Total Usuarios</div>
-                    <div class="stat-number" id="totalUsers">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Suscripciones Activas</div>
-                    <div class="stat-number" id="activeSubscriptions">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Ingresos Mensuales</div>
-                    <div class="stat-number" id="monthlyRevenue">$0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">Usuarios Bloqueados</div>
-                    <div class="stat-number" id="blockedUsers">0</div>
-                </div>
+        <div class="stats">
+            <div class="stat-card">
+                <h3>Total Usuarios</h3>
+                <div class="number" id="totalUsers">0</div>
             </div>
+            <div class="stat-card">
+                <h3>Activos</h3>
+                <div class="number" id="activeUsers" style="color: #28a745;">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>En Prueba</h3>
+                <div class="number" id="trialUsers" style="color: #ffc107;">0</div>
+            </div>
+            <div class="stat-card">
+                <h3>Expirados</h3>
+                <div class="number" id="expiredUsers" style="color: #dc3545;">0</div>
+            </div>
+        </div>
 
-            <div class="search-box">
-                <input type="text" id="searchInput" placeholder="🔍 Buscar usuario por nombre o email..." onkeyup="filterUsers()">
-            </div>
-
-            <div class="users-table">
-                <table>
-                    <thead>
-                        <tr>
-                            <th>Nombre</th>
-                            <th>Email</th>
-                            <th>Estado</th>
-                            <th>Fecha Expiración</th>
-                            <th>Fecha Registro</th>
-                            <th>Acciones</th>
-                        </tr>
-                    </thead>
-                    <tbody id="usersTableBody">
-                        <tr>
-                            <td colspan="6" class="loading">
-                                <div class="spinner"></div>
-                                Cargando usuarios...
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+        <div class="users-table">
+            <h2>Gestión de Usuarios</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Nombre</th>
+                        <th>Email</th>
+                        <th>Estado</th>
+                        <th>Expira</th>
+                        <th>Registrado</th>
+                        <th>Acciones</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTableBody">
+                    <tr>
+                        <td colspan="6" style="text-align: center; padding: 40px;">Cargando usuarios...</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 
     <script>
-        const API_URL = 'http://localhost:3000/api';
-        let allUsers = [];
-        let adminToken = null;
+        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
+        let adminToken = localStorage.getItem('adminToken');
+        let currentAdminUser = null;
 
-        // Login de administrador
-        async function adminLogin(event) {
+        // Verificar si ya está logueado
+        if (adminToken) {
+            validateAdminToken();
+        }
+
+        async function login(event) {
             event.preventDefault();
-            
             const email = document.getElementById('adminEmail').value;
             const password = document.getElementById('adminPassword').value;
 
-            // Demo credentials
-            if (email === 'admin@stockscanner.com' && password === 'admin123') {
-                adminToken = 'demo_admin_token';
-                showAdminPanel();
-                loadUsers();
-            } else {
-                alert('Credenciales incorrectas');
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    if (data.user.isAdmin) {
+                        adminToken = data.token;
+                        currentAdminUser = data.user;
+                        localStorage.setItem('adminToken', adminToken);
+                        showAdminPanel();
+                    } else {
+                        showError('Acceso denegado. Solo administradores.');
+                    }
+                } else {
+                    showError(data.message || 'Error al iniciar sesión');
+                }
+            } catch (error) {
+                showError('Error de conexión');
+            }
+        }
+
+        async function validateAdminToken() {
+            try {
+                const response = await fetch(`${API_URL}/auth/validate`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    if (data.user.isAdmin) {
+                        currentAdminUser = data.user;
+                        showAdminPanel();
+                    } else {
+                        logout();
+                    }
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
             }
         }
 
         function showAdminPanel() {
-            document.getElementById('loginScreen').style.display = 'none';
-            document.getElementById('adminPanel').classList.add('active');
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('adminScreen').classList.remove('hidden');
+            document.getElementById('adminName').textContent = currentAdminUser.name;
+            loadUsers();
         }
 
-        function logout() {
-            adminToken = null;
-            allUsers = [];
-            document.getElementById('loginScreen').style.display = 'flex';
-            document.getElementById('adminPanel').classList.remove('active');
-        }
-
-        // Cargar usuarios
         async function loadUsers() {
             try {
-                // En producción, hacer llamada real a la API
-                // const response = await fetch(`${API_URL}/admin/users`, {
-                //     headers: { 'Authorization': `Bearer ${adminToken}` }
-                // });
-                // const data = await response.json();
-                // allUsers = data.users;
+                const response = await fetch(`${API_URL}/admin/users`, {
+                    headers: { 'Authorization': `Bearer ${adminToken}` }
+                });
 
-                // DEMO: Datos simulados
-                allUsers = [
-                    {
-                        id: '1',
-                        name: 'Juan Pérez',
-                        email: 'juan@email.com',
-                        subscription: {
-                            status: 'active',
-                            expiryDate: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString()
-                        },
-                        createdAt: '2024-01-15T10:00:00Z'
-                    },
-                    {
-                        id: '2',
-                        name: 'María García',
-                        email: 'maria@email.com',
-                        subscription: {
-                            status: 'active',
-                            expiryDate: new Date(Date.now() + 25 * 24 * 60 * 60 * 1000).toISOString()
-                        },
-                        createdAt: '2024-01-20T15:30:00Z'
-                    },
-                    {
-                        id: '3',
-                        name: 'Carlos López',
-                        email: 'carlos@email.com',
-                        subscription: {
-                            status: 'expired',
-                            expiryDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
-                        },
-                        createdAt: '2023-12-10T08:00:00Z'
-                    },
-                    {
-                        id: '4',
-                        name: 'Ana Martínez',
-                        email: 'ana@email.com',
-                        subscription: {
-                            status: 'pending',
-                            expiryDate: null
-                        },
-                        createdAt: '2024-02-01T12:00:00Z'
-                    },
-                    {
-                        id: '5',
-                        name: 'Luis Rodríguez',
-                        email: 'luis@email.com',
-                        subscription: {
-                            status: 'blocked',
-                            expiryDate: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
-                        },
-                        createdAt: '2023-11-05T14:20:00Z'
-                    }
-                ];
-
-                updateStats();
-                renderUsers(allUsers);
+                const data = await response.json();
+                renderUsers(data.users);
+                updateStats(data.users);
             } catch (error) {
                 console.error('Error cargando usuarios:', error);
             }
         }
 
-        // Actualizar estadísticas
-        function updateStats() {
-            const total = allUsers.length;
-            const active = allUsers.filter(u => u.subscription?.status === 'active').length;
-            const blocked = allUsers.filter(u => u.subscription?.status === 'blocked').length;
-            const revenue = active * 20;
-
-            document.getElementById('totalUsers').textContent = total;
-            document.getElementById('activeSubscriptions').textContent = active;
-            document.getElementById('monthlyRevenue').textContent = `$${revenue}`;
-            document.getElementById('blockedUsers').textContent = blocked;
-        }
-
-        // Renderizar tabla de usuarios
         function renderUsers(users) {
             const tbody = document.getElementById('usersTableBody');
             
             if (users.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center;">No hay usuarios</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px;">No hay usuarios registrados</td></tr>';
                 return;
             }
 
             tbody.innerHTML = users.map(user => {
-                const statusClass = `status-${user.subscription?.status || 'pending'}';
-                const statusText = {
-                    'active': 'Activa',
-                    'pending': 'Pendiente',
-                    'expired': 'Expirada',
-                    'blocked': 'Bloqueada'
-                }[user.subscription?.status] || 'Desconocido';
-
-                const expiryDate = user.subscription?.expiryDate 
-                    ? new Date(user.subscription.expiryDate).toLocaleDateString('es-ES')
-                    : 'N/A';
-
-                const createdDate = new Date(user.createdAt).toLocaleDateString('es-ES');
-
+                const expiry = new Date(user.subscription_expiry);
+                const now = new Date();
+                const daysLeft = Math.ceil((expiry - now) / (1000 * 60 * 60 * 24));
+                
                 return `
                     <tr>
-                        <td><strong>${user.name}</strong></td>
+                        <td>${user.name}</td>
                         <td>${user.email}</td>
+                        <td><span class="status ${user.subscription_status}">${getStatusText(user.subscription_status)}</span></td>
+                        <td>${expiry.toLocaleDateString('es-ES')} <br><small>(${daysLeft} días)</small></td>
+                        <td>${new Date(user.created_at).toLocaleDateString('es-ES')}</td>
                         <td>
-                            <span class="status-badge ${statusClass}">${statusText}</span>
-                        </td>
-                        <td>${expiryDate}</td>
-                        <td>${createdDate}</td>
-                        <td>
-                            ${user.subscription?.status !== 'blocked' 
-                                ? `<button class="btn btn-block" onclick="blockUser('${user.id}', '${user.name}')">Bloquear</button>`
-                                : `<button class="btn btn-activate" onclick="activateUser('${user.id}', '${user.name}')">Activar</button>`
+                            ${user.subscription_status !== 'active' ? 
+                                `<button class="action-btn activate-btn" onclick="activateUser(${user.id})">Activar 30d</button>` : 
+                                `<button class="action-btn extend-btn" onclick="extendSubscription(${user.id})">+30d</button>`
+                            }
+                            ${user.subscription_status !== 'blocked' ? 
+                                `<button class="action-btn block-btn" onclick="blockUser(${user.id})">Bloquear</button>` : 
+                                `<button class="action-btn activate-btn" onclick="activateUser(${user.id})">Desbloquear</button>`
                             }
                         </td>
                     </tr>
@@ -498,77 +466,104 @@
             }).join('');
         }
 
-        // Filtrar usuarios
-        function filterUsers() {
-            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
-            const filtered = allUsers.filter(user => 
-                user.name.toLowerCase().includes(searchTerm) ||
-                user.email.toLowerCase().includes(searchTerm)
-            );
-            renderUsers(filtered);
+        function updateStats(users) {
+            document.getElementById('totalUsers').textContent = users.length;
+            document.getElementById('activeUsers').textContent = users.filter(u => u.subscription_status === 'active').length;
+            document.getElementById('trialUsers').textContent = users.filter(u => u.subscription_status === 'trial').length;
+            document.getElementById('expiredUsers').textContent = users.filter(u => u.subscription_status === 'expired').length;
         }
 
-        // Bloquear usuario
-        async function blockUser(userId, userName) {
-            if (!confirm(`¿Estás seguro de bloquear a ${userName}?`)) {
-                return;
-            }
-
-            try {
-                // En producción:
-                // await fetch(`${API_URL}/admin/block-user`, {
-                //     method: 'POST',
-                //     headers: {
-                //         'Content-Type': 'application/json',
-                //         'Authorization': `Bearer ${adminToken}`
-                //     },
-                //     body: JSON.stringify({ userId })
-                // });
-
-                // DEMO: Actualizar localmente
-                const user = allUsers.find(u => u.id === userId);
-                if (user) {
-                    user.subscription.status = 'blocked';
-                    updateStats();
-                    renderUsers(allUsers);
-                    alert(`Usuario ${userName} bloqueado exitosamente`);
-                }
-            } catch (error) {
-                alert('Error bloqueando usuario');
-                console.error(error);
-            }
+        function getStatusText(status) {
+            const statusMap = {
+                'active': 'Activo',
+                'trial': 'Prueba',
+                'expired': 'Expirado',
+                'blocked': 'Bloqueado'
+            };
+            return statusMap[status] || status;
         }
 
-        // Activar usuario
-        async function activateUser(userId, userName) {
-            if (!confirm(`¿Activar la suscripción de ${userName}?`)) {
-                return;
-            }
+        async function activateUser(userId) {
+            const days = prompt('¿Por cuántos días quieres activar? (default: 30)', '30');
+            if (!days) return;
 
             try {
-                // En producción:
-                // await fetch(`${API_URL}/admin/activate-user`, {
-                //     method: 'POST',
-                //     headers: {
-                //         'Content-Type': 'application/json',
-                //         'Authorization': `Bearer ${adminToken}`
-                //     },
-                //     body: JSON.stringify({ userId })
-                // });
+                const response = await fetch(`${API_URL}/admin/activate-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ userId, days: parseInt(days) })
+                });
 
-                // DEMO: Actualizar localmente
-                const user = allUsers.find(u => u.id === userId);
-                if (user) {
-                    user.subscription.status = 'active';
-                    user.subscription.expiryDate = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
-                    updateStats();
-                    renderUsers(allUsers);
-                    alert(`Usuario ${userName} activado exitosamente`);
+                if (response.ok) {
+                    alert('Usuario activado exitosamente');
+                    loadUsers();
                 }
             } catch (error) {
                 alert('Error activando usuario');
-                console.error(error);
             }
+        }
+
+        async function blockUser(userId) {
+            if (!confirm('¿Estás seguro de bloquear este usuario?')) return;
+
+            try {
+                const response = await fetch(`${API_URL}/admin/block-user`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ userId })
+                });
+
+                if (response.ok) {
+                    alert('Usuario bloqueado');
+                    loadUsers();
+                }
+            } catch (error) {
+                alert('Error bloqueando usuario');
+            }
+        }
+
+        async function extendSubscription(userId) {
+            const days = prompt('¿Cuántos días quieres agregar? (default: 30)', '30');
+            if (!days) return;
+
+            try {
+                const response = await fetch(`${API_URL}/admin/extend-trial`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${adminToken}`
+                    },
+                    body: JSON.stringify({ userId, days: parseInt(days) })
+                });
+
+                if (response.ok) {
+                    alert('Suscripción extendida');
+                    loadUsers();
+                }
+            } catch (error) {
+                alert('Error extendiendo suscripción');
+            }
+        }
+
+        function logout() {
+            localStorage.removeItem('adminToken');
+            adminToken = null;
+            currentAdminUser = null;
+            document.getElementById('adminScreen').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('loginError');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
         }
     </script>
 </body>
