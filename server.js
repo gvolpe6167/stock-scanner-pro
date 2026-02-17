@@ -1,4 +1,4 @@
-// server.js - Con endpoint para inicializar admin
+// server.js - Con endpoint setup-admin que actualiza contraseña
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -28,19 +28,19 @@ app.get('/api/setup-admin', async (req, res) => {
             await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE');
             console.log('✅ Columna is_admin verificada/agregada');
         } catch (e) {
-            console.log('⚠️ Error agregando columna (puede ser que ya exista):', e.message);
+            console.log('⚠️ Error agregando columna:', e.message);
         }
 
-        // Paso 2: Verificar si admin existe
+        // Paso 2: Crear/actualizar admin con contraseña
         const adminEmail = 'gvolpe@gmail.com';
+        const adminPassword = 'Admin2024!Segura';
+        const hashedPassword = await bcrypt.hash(adminPassword, 10);
+        const expiryDate = new Date('2099-12-31');
+        
         const adminExists = await pool.query('SELECT * FROM users WHERE email = $1', [adminEmail]);
         
         if (adminExists.rows.length === 0) {
-            // Crear admin
-            const adminPassword = 'Admin2024!Segura';
-            const hashedPassword = await bcrypt.hash(adminPassword, 10);
-            const expiryDate = new Date('2099-12-31');
-            
+            // Crear admin nuevo
             await pool.query(
                 'INSERT INTO users (name, email, password, subscription_status, subscription_expiry, is_admin) VALUES ($1, $2, $3, $4, $5, $6)',
                 ['Administrador', adminEmail, hashedPassword, 'active', expiryDate, true]
@@ -52,14 +52,17 @@ app.get('/api/setup-admin', async (req, res) => {
                 email: adminEmail
             });
         } else {
-            // Actualizar usuario existente a admin
-            await pool.query('UPDATE users SET is_admin = TRUE, subscription_status = $1, subscription_expiry = $2 WHERE email = $3', 
-                ['active', new Date('2099-12-31'), adminEmail]);
+            // Actualizar usuario existente: admin + contraseña
+            await pool.query(
+                'UPDATE users SET is_admin = TRUE, password = $1, subscription_status = $2, subscription_expiry = $3 WHERE email = $4', 
+                [hashedPassword, 'active', expiryDate, adminEmail]
+            );
             
             res.json({ 
                 success: true, 
-                message: 'Usuario actualizado a admin exitosamente',
-                email: adminEmail
+                message: 'Usuario actualizado: admin + contraseña reseteada',
+                email: adminEmail,
+                password: 'Admin2024!Segura'
             });
         }
     } catch (error) {
@@ -442,5 +445,5 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
     console.log(`📊 Stock Scanner Pro - Panel de Administración`);
-    console.log(`🔧 Ejecuta GET /api/setup-admin para crear el administrador`);
+    console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
