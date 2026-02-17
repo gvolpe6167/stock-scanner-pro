@@ -1,4 +1,4 @@
-// server.js - Con proxy para Yahoo Finance
+// server.js - Señales basadas en posición EMA
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -61,9 +61,9 @@ function authenticateToken(req, res, next) {
     });
 }
 
-// Función para obtener datos de Yahoo Finance con múltiples métodos
+// Yahoo Finance con múltiples métodos
 async function getYahooData(ticker) {
-    // Método 1: Query1 con headers completos
+    // Método 1: Query1
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&includePrePost=false`;
         const response = await fetch(url, {
@@ -71,31 +71,22 @@ async function getYahooData(ticker) {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
                 'Accept': '*/*',
                 'Accept-Language': 'en-US,en;q=0.9,es;q=0.8',
-                'Accept-Encoding': 'gzip, deflate, br',
                 'Referer': 'https://finance.yahoo.com/',
                 'Origin': 'https://finance.yahoo.com',
-                'Cookie': 'B=abc123; expires=Wed, 01-Jan-2026 00:00:00 GMT; path=/; domain=.yahoo.com',
             },
             timeout: 10000
         });
         if (response.ok) {
             const data = await response.json();
             if (data.chart?.result?.[0]) {
-                const result = data.chart.result[0];
-                const closes = result.indicators.quote[0].close.filter(c => c !== null);
+                const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
                     console.log(`✅ Método 1 exitoso para ${ticker}`);
-                    return {
-                        currentPrice: closes[closes.length - 1],
-                        previousPrice: closes[closes.length - 2],
-                        closes
-                    };
+                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {
-        console.log(`❌ Método 1 falló para ${ticker}: ${e.message}`);
-    }
+    } catch (e) { console.log(`❌ Método 1 falló: ${e.message}`); }
 
     // Método 2: Query2
     try {
@@ -111,29 +102,21 @@ async function getYahooData(ticker) {
         if (response.ok) {
             const data = await response.json();
             if (data.chart?.result?.[0]) {
-                const result = data.chart.result[0];
-                const closes = result.indicators.quote[0].close.filter(c => c !== null);
+                const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
                     console.log(`✅ Método 2 exitoso para ${ticker}`);
-                    return {
-                        currentPrice: closes[closes.length - 1],
-                        previousPrice: closes[closes.length - 2],
-                        closes
-                    };
+                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {
-        console.log(`❌ Método 2 falló para ${ticker}: ${e.message}`);
-    }
+    } catch (e) { console.log(`❌ Método 2 falló: ${e.message}`); }
 
-    // Método 3: API v7
+    // Método 3: CSV
     try {
         const url = `https://query1.finance.yahoo.com/v7/finance/download/${ticker}?range=1y&interval=1d&events=history`;
         const response = await fetch(url, {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/121.0',
-                'Accept': 'text/csv,application/csv',
                 'Referer': 'https://finance.yahoo.com/',
             },
             timeout: 10000
@@ -144,27 +127,18 @@ async function getYahooData(ticker) {
             if (lines.length > 10) {
                 const closes = [];
                 for (let i = 1; i < lines.length; i++) {
-                    const parts = lines[i].split(',');
-                    const closePrice = parseFloat(parts[4]);
-                    if (!isNaN(closePrice) && closePrice > 0) {
-                        closes.push(closePrice);
-                    }
+                    const closePrice = parseFloat(lines[i].split(',')[4]);
+                    if (!isNaN(closePrice) && closePrice > 0) closes.push(closePrice);
                 }
                 if (closes.length >= 50) {
                     console.log(`✅ Método 3 (CSV) exitoso para ${ticker}`);
-                    return {
-                        currentPrice: closes[closes.length - 1],
-                        previousPrice: closes[closes.length - 2],
-                        closes
-                    };
+                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {
-        console.log(`❌ Método 3 falló para ${ticker}: ${e.message}`);
-    }
+    } catch (e) { console.log(`❌ Método 3 falló: ${e.message}`); }
 
-    // Método 4: Usar AllOrigins como proxy
+    // Método 4: Proxy
     try {
         const yahooUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`);
         const url = `https://api.allorigins.win/get?url=${yahooUrl}`;
@@ -173,23 +147,15 @@ async function getYahooData(ticker) {
             const proxyData = await response.json();
             const data = JSON.parse(proxyData.contents);
             if (data.chart?.result?.[0]) {
-                const result = data.chart.result[0];
-                const closes = result.indicators.quote[0].close.filter(c => c !== null);
+                const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
                     console.log(`✅ Método 4 (proxy) exitoso para ${ticker}`);
-                    return {
-                        currentPrice: closes[closes.length - 1],
-                        previousPrice: closes[closes.length - 2],
-                        closes
-                    };
+                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {
-        console.log(`❌ Método 4 falló para ${ticker}: ${e.message}`);
-    }
+    } catch (e) { console.log(`❌ Método 4 falló: ${e.message}`); }
 
-    console.log(`❌ Todos los métodos fallaron para ${ticker}`);
     return null;
 }
 
@@ -218,35 +184,42 @@ function calculateRSI(prices, period = 14) {
     return 100 - (100 / (1 + rs));
 }
 
-function determineSignal(price, ema20, ema50, ema100, ema200, rsi) {
-    if (price < ema200 && rsi < 30) return 'Muy Favorable';
-    if (price >= ema200 && price < ema100 && rsi >= 30 && rsi < 40) return 'Favorable';
-    if (price >= ema100 && price < ema50 && rsi >= 40 && rsi <= 60) return 'Interesante';
-    if (price >= ema50 && price < ema20 && rsi > 60 && rsi <= 70) return 'A Considerar';
-    if (price >= ema20 && rsi > 70) return 'No Favorable';
-    if (rsi < 30) return 'Muy Favorable';
-    if (rsi >= 30 && rsi < 40) return 'Favorable';
-    if (rsi >= 40 && rsi <= 60) return 'Interesante';
-    if (rsi > 60 && rsi <= 70) return 'A Considerar';
-    if (rsi > 70) return 'No Favorable';
-    return 'Interesante';
+// NUEVA LÓGICA: Señal basada en posición EMA
+function determineSignal(price, ema20, ema50, ema100, ema200) {
+    const belowAll = price < ema200 && price < ema100 && price < ema50 && price < ema20;
+    const aboveAll = price > ema200 && price > ema100 && price > ema50 && price > ema20;
+
+    if (belowAll) return 'Muy Favorable';
+    if (price >= ema200 && price < ema100) return 'Favorable';
+    if (price >= ema100 && price < ema50) return 'Interesante';
+    if (price >= ema50 && price < ema20) return 'A Considerar';
+    if (aboveAll) return 'No Favorable';
+
+    // Casos mixtos basados en EMA200
+    if (price < ema200) return 'Muy Favorable';
+    if (price < ema100) return 'Favorable';
+    if (price < ema50) return 'Interesante';
+    if (price < ema20) return 'A Considerar';
+    return 'No Favorable';
 }
 
-function calculateNivelLC(signal, rsi, price, ema20, ema50, ema100, ema200, changePercent) {
+// Nivel LC basado en señal + RSI
+function calculateNivelLC(signal, rsi) {
     let nivelLC = 50;
+
+    // Base según señal
     if (signal === 'Muy Favorable') nivelLC = 85;
     else if (signal === 'Favorable') nivelLC = 70;
     else if (signal === 'Interesante') nivelLC = 50;
     else if (signal === 'A Considerar') nivelLC = 35;
     else if (signal === 'No Favorable') nivelLC = 20;
+
+    // Ajuste por RSI
     if (rsi < 25) nivelLC = Math.min(100, nivelLC + 10);
-    if (rsi > 75) nivelLC = Math.max(0, nivelLC - 10);
-    const absChange = Math.abs(parseFloat(changePercent));
-    if (absChange > 5) nivelLC = Math.max(0, nivelLC - 5);
-    const belowAll = price < ema20 && price < ema50 && price < ema100 && price < ema200;
-    const aboveAll = price > ema20 && price > ema50 && price > ema100 && price > ema200;
-    if (signal === 'Muy Favorable' && belowAll) nivelLC = Math.min(100, nivelLC + 5);
-    if (signal === 'No Favorable' && aboveAll) nivelLC = Math.max(0, nivelLC - 5);
+    else if (rsi < 35) nivelLC = Math.min(100, nivelLC + 5);
+    else if (rsi > 75) nivelLC = Math.max(0, nivelLC - 10);
+    else if (rsi > 65) nivelLC = Math.max(0, nivelLC - 5);
+
     return Math.round(Math.min(100, Math.max(0, nivelLC)));
 }
 
@@ -255,9 +228,9 @@ function getSMAPosition(price, ema20, ema50, ema100, ema200) {
     const belowAll = price < ema20 && price < ema50 && price < ema100 && price < ema200;
     if (aboveAll) return 'Sobre todas las EMA (20,50,100,200)';
     if (belowAll) return 'Debajo de todas las EMA';
-    if (price > ema200 && price < ema100) return 'Entre EMA200 y EMA100';
-    if (price > ema100 && price < ema50) return 'Entre EMA100 y EMA50';
-    if (price > ema50 && price < ema20) return 'Entre EMA50 y EMA20';
+    if (price >= ema200 && price < ema100) return 'Entre EMA200 y EMA100';
+    if (price >= ema100 && price < ema50) return 'Entre EMA100 y EMA50';
+    if (price >= ema50 && price < ema20) return 'Entre EMA50 y EMA20';
     if (price > ema200) return 'Sobre EMA200 (zona de fortaleza)';
     return 'Posición mixta entre EMAs';
 }
@@ -346,31 +319,35 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
                     const currentPrice = yahooData.currentPrice;
                     const previousPrice = yahooData.previousPrice;
                     const changePercent = ((currentPrice - previousPrice) / previousPrice * 100).toFixed(2);
+
                     const ema20 = calculateEMA(yahooData.closes, 20);
                     const ema50 = calculateEMA(yahooData.closes, 50);
                     const ema100 = yahooData.closes.length >= 100 ? calculateEMA(yahooData.closes, 100) : ema50;
                     const ema200 = yahooData.closes.length >= 200 ? calculateEMA(yahooData.closes, 200) : ema100;
+
                     const rsi = Math.round(calculateRSI(yahooData.closes.slice(-50), 14));
-                    const signal = determineSignal(currentPrice, ema20, ema50, ema100, ema200, rsi);
+
+                    // NUEVA LÓGICA: señal basada en posición EMA
+                    const signal = determineSignal(currentPrice, ema20, ema50, ema100, ema200);
                     const smaPosition = getSMAPosition(currentPrice, ema20, ema50, ema100, ema200);
-                    const nivelLC = calculateNivelLC(signal, rsi, currentPrice, ema20, ema50, ema100, ema200, changePercent);
+                    const nivelLC = calculateNivelLC(signal, rsi);
+
                     const etfs = ['JEPQ', 'QQQM', 'SCHG', 'SPY', 'VOO', 'QQQ', 'VTI', 'IVV', 'SPYM', 'SPMO', 'SCHD'];
                     const type = etfs.includes(ticker.toUpperCase()) ? 'ETF' : 'Stock';
+
                     marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi, signal, nivelLC, smaPosition });
-                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi}, Señal=${signal}`);
+                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi}, EMA20=${ema20?.toFixed(2)}, Señal=${signal}`);
                 } else {
                     throw new Error('No se pudieron obtener datos');
                 }
             } catch (error) {
                 console.error(`❌ Error con ${ticker}:`, error.message);
-                const rsi = Math.floor(Math.random() * 60) + 20;
-                let signal = 'Interesante', nivelLC = 50;
-                if (rsi < 30) { signal = 'Muy Favorable'; nivelLC = 85; }
-                else if (rsi < 40) { signal = 'Favorable'; nivelLC = 70; }
-                else if (rsi <= 60) { signal = 'Interesante'; nivelLC = 50; }
-                else if (rsi <= 70) { signal = 'A Considerar'; nivelLC = 35; }
-                else { signal = 'No Favorable'; nivelLC = 20; }
-                marketData.push({ ticker, type: 'Stock', price: 'N/A', changePercent: '0.00', rsi, signal, nivelLC, smaPosition: 'Actualizando...' });
+                marketData.push({
+                    ticker, type: 'Stock',
+                    price: 'N/A', changePercent: '0.00',
+                    rsi: 50, signal: 'Interesante',
+                    nivelLC: 50, smaPosition: 'Actualizando...'
+                });
             }
         }
         res.json({ data: marketData });
@@ -382,5 +359,5 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
     console.log(`📊 Stock Scanner Pro - Modo ${process.env.NODE_ENV || 'development'}`);
-    console.log(`📈 Yahoo Finance con 4 métodos de acceso + proxy`);
+    console.log(`📈 Señales basadas en posición EMA (20,50,100,200)`);
 });
