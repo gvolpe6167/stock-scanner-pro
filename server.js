@@ -1,4 +1,4 @@
-// server.js - Con panel de administración
+// server.js - Panel de administración CORREGIDO
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -22,27 +22,18 @@ const pool = new Pool({
 
 async function initDatabase() {
     try {
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS users (
-                id SERIAL PRIMARY KEY,
-                name VARCHAR(255) NOT NULL,
-                email VARCHAR(255) UNIQUE NOT NULL,
-                password VARCHAR(255) NOT NULL,
-                subscription_status VARCHAR(50) DEFAULT 'trial',
-                subscription_expiry TIMESTAMP,
-                is_admin BOOLEAN DEFAULT FALSE,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
+        // Verificar si la columna is_admin existe
+        const columnCheck = await pool.query(`
+            SELECT column_name 
+            FROM information_schema.columns 
+            WHERE table_name = 'users' AND column_name = 'is_admin'
         `);
-        await pool.query(`
-            CREATE TABLE IF NOT EXISTS user_tickers (
-                id SERIAL PRIMARY KEY,
-                user_id INTEGER REFERENCES users(id) ON DELETE CASCADE,
-                ticker VARCHAR(20) NOT NULL,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-                UNIQUE(user_id, ticker)
-            )
-        `);
+
+        if (columnCheck.rows.length === 0) {
+            // Agregar columna is_admin si no existe
+            await pool.query('ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE');
+            console.log('✅ Columna is_admin agregada');
+        }
 
         // Crear cuenta de administrador si no existe
         const adminEmail = 'gvolpe@gmail.com';
@@ -51,11 +42,16 @@ async function initDatabase() {
         
         if (adminExists.rows.length === 0) {
             const hashedPassword = await bcrypt.hash(adminPassword, 10);
+            const expiryDate = new Date('2099-12-31');
             await pool.query(
-                'INSERT INTO users (name, email, password, subscription_status, is_admin, subscription_expiry) VALUES ($1, $2, $3, $4, $5, $6)',
-                ['Administrador', adminEmail, hashedPassword, 'active', true, new Date('2099-12-31')]
+                'INSERT INTO users (name, email, password, subscription_status, subscription_expiry, is_admin) VALUES ($1, $2, $3, $4, $5, $6)',
+                ['Administrador', adminEmail, hashedPassword, 'active', expiryDate, true]
             );
             console.log('✅ Cuenta de administrador creada');
+        } else {
+            // Asegurar que el admin tenga is_admin = true
+            await pool.query('UPDATE users SET is_admin = TRUE WHERE email = $1', [adminEmail]);
+            console.log('✅ Admin actualizado');
         }
 
         console.log('✅ Base de datos inicializada correctamente');
@@ -197,7 +193,6 @@ function getSMAPosition(price, ema20, ema50, ema100, ema200) {
     return 'Posición mixta entre EMAs';
 }
 
-// RUTAS DE AUTENTICACIÓN
 app.post('/api/auth/register', async (req, res) => {
     try {
         const { name, email, password } = req.body;
@@ -207,7 +202,7 @@ app.post('/api/auth/register', async (req, res) => {
         if (existingUser.rows.length > 0) return res.status(400).json({ message: 'Este email ya está registrado' });
         
         const hashedPassword = await bcrypt.hash(password, 10);
-        const trialExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 días
+        const trialExpiry = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
         
         const result = await pool.query(
             'INSERT INTO users (name, email, password, subscription_status, subscription_expiry) VALUES ($1, $2, $3, $4, $5) RETURNING id, name, email, subscription_status, subscription_expiry',
@@ -246,7 +241,6 @@ app.post('/api/auth/login', async (req, res) => {
         const validPassword = await bcrypt.compare(password, user.password);
         if (!validPassword) return res.status(401).json({ message: 'Credenciales incorrectas' });
         
-        // Verificar si expiró la suscripción
         const now = new Date();
         const expiry = new Date(user.subscription_expiry);
         
@@ -272,6 +266,7 @@ app.post('/api/auth/login', async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Error en login:', error);
         res.status(500).json({ message: 'Error en el servidor' });
     }
 });
@@ -303,18 +298,19 @@ app.get('/api/auth/validate', authenticateToken, async (req, res) => {
             }
         });
     } catch (error) {
+        console.error('Error en validación:', error);
         res.status(500).json({ message: 'Error en el servidor' });
     }
 });
 
-// RUTAS DE ADMINISTRACIÓN
 app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
     try {
         const result = await pool.query(
-            'SELECT id, name, email, subscription_status, subscription_expiry, created_at FROM users WHERE is_admin = FALSE ORDER BY created_at DESC'
+            'SELECT id, name, email, subscription_status, subscription_expiry, created_at FROM users WHERE is_admin = FALSE OR is_admin IS NULL ORDER BY created_at DESC'
         );
         res.json({ users: result.rows });
     } catch (error) {
+        console.error('Error obteniendo usuarios:', error);
         res.status(500).json({ message: 'Error obteniendo usuarios' });
     }
 });
@@ -332,6 +328,7 @@ app.post('/api/admin/activate-user', authenticateAdmin, async (req, res) => {
         
         res.json({ message: `Usuario activado por ${daysToAdd} días` });
     } catch (error) {
+        console.error('Error activando usuario:', error);
         res.status(500).json({ message: 'Error activando usuario' });
     }
 });
@@ -342,6 +339,7 @@ app.post('/api/admin/block-user', authenticateAdmin, async (req, res) => {
         await pool.query('UPDATE users SET subscription_status = $1 WHERE id = $2', ['blocked', userId]);
         res.json({ message: 'Usuario bloqueado' });
     } catch (error) {
+        console.error('Error bloqueando usuario:', error);
         res.status(500).json({ message: 'Error bloqueando usuario' });
     }
 });
@@ -358,17 +356,18 @@ app.post('/api/admin/extend-trial', authenticateAdmin, async (req, res) => {
         await pool.query('UPDATE users SET subscription_expiry = $1 WHERE id = $2', [newExpiry, userId]);
         res.json({ message: `Suscripción extendida por ${daysToAdd} días` });
     } catch (error) {
+        console.error('Error extendiendo suscripción:', error);
         res.status(500).json({ message: 'Error extendiendo suscripción' });
     }
 });
 
-// RUTAS DE TICKERS
 app.get('/api/tickers', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT ticker FROM user_tickers WHERE user_id = $1', [req.user.id]);
         const tickers = result.rows.length > 0 ? result.rows.map(r => r.ticker) : ['AAPL', 'MSFT', 'GOOGL'];
         res.json({ tickers });
     } catch (error) {
+        console.error('Error obteniendo tickers:', error);
         res.json({ tickers: ['AAPL', 'MSFT', 'GOOGL'] });
     }
 });
@@ -382,18 +381,18 @@ app.post('/api/tickers', authenticateToken, async (req, res) => {
         }
         res.json({ message: 'Tickers guardados', tickers });
     } catch (error) {
+        console.error('Error guardando tickers:', error);
         res.status(500).json({ message: 'Error guardando tickers' });
     }
 });
 
-// RUTA DE DATOS DE MERCADO
 app.post('/api/market-data', authenticateToken, async (req, res) => {
     try {
         const userResult = await pool.query('SELECT subscription_status, is_admin FROM users WHERE id = $1', [req.user.id]);
         const user = userResult.rows[0];
         
         if (!user.is_admin && user.subscription_status !== 'active' && user.subscription_status !== 'trial') {
-            return res.status(403).json({ message: 'Suscripción expirada o bloqueada' });
+            return res.status(403).json({ message: 'Suscripción expirada o bloqueada. Contacta al administrador.' });
         }
         
         const { tickers } = req.body;
@@ -426,13 +425,14 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
         }
         res.json({ data: marketData });
     } catch (error) {
+        console.error('Error en market-data:', error);
         res.status(500).json({ message: 'Error obteniendo datos del mercado' });
     }
 });
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro con Panel de Administración`);
-    console.log(`🔐 Admin: gvolpe@gmail.com`);
-    console.log(`🎁 Prueba gratis: 7 días`);
+    console.log(`📊 Stock Scanner Pro - Panel de Administración`);
+    console.log(`🔐 Admin: gvolpe@gmail.com / Admin2024!Segura`);
+    console.log(`🎁 Prueba gratis: 7 días para nuevos usuarios`);
 });
