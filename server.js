@@ -1,4 +1,4 @@
-// server.js - Panel de administración CORREGIDO
+// server.js - Con endpoint para inicializar admin
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -20,47 +20,56 @@ const pool = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-async function initDatabase() {
+// ENDPOINT TEMPORAL PARA INICIALIZAR ADMIN
+app.get('/api/setup-admin', async (req, res) => {
     try {
-        // Verificar si la columna is_admin existe
-        const columnCheck = await pool.query(`
-            SELECT column_name 
-            FROM information_schema.columns 
-            WHERE table_name = 'users' AND column_name = 'is_admin'
-        `);
-
-        if (columnCheck.rows.length === 0) {
-            // Agregar columna is_admin si no existe
-            await pool.query('ALTER TABLE users ADD COLUMN is_admin BOOLEAN DEFAULT FALSE');
-            console.log('✅ Columna is_admin agregada');
+        // Paso 1: Agregar columna is_admin si no existe
+        try {
+            await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE');
+            console.log('✅ Columna is_admin verificada/agregada');
+        } catch (e) {
+            console.log('⚠️ Error agregando columna (puede ser que ya exista):', e.message);
         }
 
-        // Crear cuenta de administrador si no existe
+        // Paso 2: Verificar si admin existe
         const adminEmail = 'gvolpe@gmail.com';
-        const adminPassword = 'Admin2024!Segura';
         const adminExists = await pool.query('SELECT * FROM users WHERE email = $1', [adminEmail]);
         
         if (adminExists.rows.length === 0) {
+            // Crear admin
+            const adminPassword = 'Admin2024!Segura';
             const hashedPassword = await bcrypt.hash(adminPassword, 10);
             const expiryDate = new Date('2099-12-31');
+            
             await pool.query(
                 'INSERT INTO users (name, email, password, subscription_status, subscription_expiry, is_admin) VALUES ($1, $2, $3, $4, $5, $6)',
                 ['Administrador', adminEmail, hashedPassword, 'active', expiryDate, true]
             );
-            console.log('✅ Cuenta de administrador creada');
+            
+            res.json({ 
+                success: true, 
+                message: 'Admin creado exitosamente',
+                email: adminEmail
+            });
         } else {
-            // Asegurar que el admin tenga is_admin = true
-            await pool.query('UPDATE users SET is_admin = TRUE WHERE email = $1', [adminEmail]);
-            console.log('✅ Admin actualizado');
+            // Actualizar usuario existente a admin
+            await pool.query('UPDATE users SET is_admin = TRUE, subscription_status = $1, subscription_expiry = $2 WHERE email = $3', 
+                ['active', new Date('2099-12-31'), adminEmail]);
+            
+            res.json({ 
+                success: true, 
+                message: 'Usuario actualizado a admin exitosamente',
+                email: adminEmail
+            });
         }
-
-        console.log('✅ Base de datos inicializada correctamente');
     } catch (error) {
-        console.error('Error inicializando base de datos:', error);
+        console.error('❌ Error en setup-admin:', error);
+        res.status(500).json({ 
+            success: false, 
+            error: error.message 
+        });
     }
-}
-
-initDatabase();
+});
 
 function authenticateToken(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -433,6 +442,5 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
     console.log(`📊 Stock Scanner Pro - Panel de Administración`);
-    console.log(`🔐 Admin: gvolpe@gmail.com / Admin2024!Segura`);
-    console.log(`🎁 Prueba gratis: 7 días para nuevos usuarios`);
+    console.log(`🔧 Ejecuta GET /api/setup-admin para crear el administrador`);
 });
