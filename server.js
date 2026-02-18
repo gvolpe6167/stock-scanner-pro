@@ -1,4 +1,4 @@
-// server.js - Con endpoint setup-admin que actualiza contraseña
+// server.js - Con cálculo de RSI corregido (método de Wilder)
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -20,10 +20,8 @@ const pool = new Pool({
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
 
-// ENDPOINT TEMPORAL PARA INICIALIZAR ADMIN
 app.get('/api/setup-admin', async (req, res) => {
     try {
-        // Paso 1: Agregar columna is_admin si no existe
         try {
             await pool.query('ALTER TABLE users ADD COLUMN IF NOT EXISTS is_admin BOOLEAN DEFAULT FALSE');
             console.log('✅ Columna is_admin verificada/agregada');
@@ -31,7 +29,6 @@ app.get('/api/setup-admin', async (req, res) => {
             console.log('⚠️ Error agregando columna:', e.message);
         }
 
-        // Paso 2: Crear/actualizar admin con contraseña
         const adminEmail = 'gvolpe@gmail.com';
         const adminPassword = 'Admin2024!Segura';
         const hashedPassword = await bcrypt.hash(adminPassword, 10);
@@ -40,7 +37,6 @@ app.get('/api/setup-admin', async (req, res) => {
         const adminExists = await pool.query('SELECT * FROM users WHERE email = $1', [adminEmail]);
         
         if (adminExists.rows.length === 0) {
-            // Crear admin nuevo
             await pool.query(
                 'INSERT INTO users (name, email, password, subscription_status, subscription_expiry, is_admin) VALUES ($1, $2, $3, $4, $5, $6)',
                 ['Administrador', adminEmail, hashedPassword, 'active', expiryDate, true]
@@ -52,7 +48,6 @@ app.get('/api/setup-admin', async (req, res) => {
                 email: adminEmail
             });
         } else {
-            // Actualizar usuario existente: admin + contraseña
             await pool.query(
                 'UPDATE users SET is_admin = TRUE, password = $1, subscription_status = $2, subscription_expiry = $3 WHERE email = $4', 
                 [hashedPassword, 'active', expiryDate, adminEmail]
@@ -150,18 +145,48 @@ function calculateEMA(prices, period) {
     return ema;
 }
 
+// RSI CORREGIDO - Método de Wilder (igual que Yahoo Finance)
 function calculateRSI(prices, period = 14) {
-    if (prices.length < period + 1) return 50;
-    let gains = 0, losses = 0;
+    if (prices.length < period + 100) return 50; // Necesitamos más datos para estabilizar
+    
+    // Usar los últimos 200 datos para cálculo más estable
+    const recentPrices = prices.slice(-200);
+    
+    // Primera media: promedio simple de ganancias y pérdidas
+    let gains = 0;
+    let losses = 0;
+    
     for (let i = 1; i <= period; i++) {
-        const change = prices[i] - prices[i - 1];
-        if (change > 0) gains += change;
-        else losses -= change;
+        const change = recentPrices[i] - recentPrices[i - 1];
+        if (change > 0) {
+            gains += change;
+        } else {
+            losses += Math.abs(change);
+        }
     }
-    const avgGain = gains / period;
-    const avgLoss = losses / period;
+    
+    let avgGain = gains / period;
+    let avgLoss = losses / period;
+    
+    // Smoothed moving average (método de Wilder)
+    for (let i = period + 1; i < recentPrices.length; i++) {
+        const change = recentPrices[i] - recentPrices[i - 1];
+        
+        if (change > 0) {
+            avgGain = (avgGain * (period - 1) + change) / period;
+            avgLoss = (avgLoss * (period - 1)) / period;
+        } else {
+            avgGain = (avgGain * (period - 1)) / period;
+            avgLoss = (avgLoss * (period - 1) + Math.abs(change)) / period;
+        }
+    }
+    
     if (avgLoss === 0) return 100;
-    return 100 - (100 / (1 + avgGain / avgLoss));
+    
+    const rs = avgGain / avgLoss;
+    const rsi = 100 - (100 / (1 + rs));
+    
+    return Math.round(rsi * 100) / 100; // Redondear a 2 decimales
 }
 
 function determineSignal(price, ema20, ema50, ema100, ema200) {
@@ -421,13 +446,14 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
                     const ema50 = calculateEMA(yahooData.closes, 50);
                     const ema100 = yahooData.closes.length >= 100 ? calculateEMA(yahooData.closes, 100) : ema50;
                     const ema200 = yahooData.closes.length >= 200 ? calculateEMA(yahooData.closes, 200) : ema100;
-                    const rsi = Math.round(calculateRSI(yahooData.closes.slice(-50), 14));
+                    const rsi = calculateRSI(yahooData.closes, 14);
                     const signal = determineSignal(currentPrice, ema20, ema50, ema100, ema200);
                     const smaPosition = getSMAPosition(currentPrice, ema20, ema50, ema100, ema200);
                     const nivelLC = calculateNivelLC(signal, rsi);
                     const etfs = ['JEPQ', 'QQQM', 'SCHG', 'SPY', 'VOO', 'QQQ', 'VTI', 'IVV', 'SPYM', 'SPMO', 'SCHD'];
                     const type = etfs.includes(ticker.toUpperCase()) ? 'ETF' : 'Stock';
-                    marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi, signal, nivelLC, smaPosition });
+                    marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi: Math.round(rsi), signal, nivelLC, smaPosition });
+                    console.log(`✅ ${ticker}: Precio=$${currentPrice.toFixed(2)}, RSI=${rsi.toFixed(2)}, EMA20=${ema20?.toFixed(2)}`);
                 } else {
                     throw new Error('Datos insuficientes');
                 }
@@ -444,6 +470,6 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Panel de Administración`);
+    console.log(`📊 Stock Scanner Pro - RSI corregido (método de Wilder)`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
