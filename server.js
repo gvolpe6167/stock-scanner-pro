@@ -1,14 +1,11 @@
-// server.js - Usando Python yfinance para datos precisos
+// server.js - Usando yahoo-finance2 (más confiable)
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const { exec } = require('child_process');
+const yahooFinance = require('yahoo-finance2').default;
 const { Pool } = require('pg');
 const path = require('path');
-const util = require('util');
-
-const execPromise = util.promisify(exec);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -83,35 +80,36 @@ function authenticateAdmin(req, res, next) {
     });
 }
 
-// Función para obtener datos usando Python yfinance
+// Función para obtener datos usando yahoo-finance2
 async function getYahooData(ticker) {
     try {
-        const pythonScript = path.join(__dirname, 'get_stock_data.py');
-        const { stdout, stderr } = await execPromise(`python3 ${pythonScript} ${ticker}`);
+        const queryOptions = { period1: '2023-01-01', interval: '1d' };
+        const result = await yahooFinance.historical(ticker, queryOptions);
         
-        if (stderr) {
-            console.log(`⚠️ Python stderr para ${ticker}:`, stderr);
-        }
-        
-        const result = JSON.parse(stdout);
-        
-        if (result.error) {
-            console.log(`❌ Error Python para ${ticker}:`, result.error);
+        if (!result || result.length < 50) {
+            console.log(`❌ Datos insuficientes para ${ticker}`);
             return null;
         }
         
-        if (result.success && result.closes && result.closes.length >= 50) {
-            console.log(`✅ Datos obtenidos vía Python para ${ticker}: ${result.closes.length} días`);
-            return {
-                currentPrice: result.currentPrice,
-                previousPrice: result.previousPrice,
-                closes: result.closes
-            };
+        const closes = result.map(day => day.close).filter(c => c !== null && c !== undefined);
+        
+        if (closes.length < 50) {
+            console.log(`❌ Precios insuficientes para ${ticker}`);
+            return null;
         }
         
-        return null;
+        const currentPrice = closes[closes.length - 1];
+        const previousPrice = closes[closes.length - 2];
+        
+        console.log(`✅ yahoo-finance2: ${ticker} obtuvo ${closes.length} días de datos`);
+        
+        return {
+            currentPrice,
+            previousPrice,
+            closes
+        };
     } catch (error) {
-        console.error(`❌ Error ejecutando Python para ${ticker}:`, error.message);
+        console.error(`❌ Error con yahoo-finance2 para ${ticker}:`, error.message);
         return null;
     }
 }
@@ -380,7 +378,7 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
                     const etfs = ['JEPQ', 'QQQM', 'SCHG', 'SPY', 'VOO', 'QQQ', 'VTI', 'IVV', 'SPYM', 'SPMO', 'SCHD'];
                     const type = etfs.includes(ticker.toUpperCase()) ? 'ETF' : 'Stock';
                     marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi: Math.round(rsi), signal, nivelLC, smaPosition });
-                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi.toFixed(2)}, EMA20=${ema20?.toFixed(2)}, Señal=${signal}`);
+                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi.toFixed(2)}, Señal=${signal}, Posición=${smaPosition}`);
                 } else {
                     throw new Error('Datos insuficientes');
                 }
@@ -398,6 +396,6 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Usando Python yfinance`);
+    console.log(`📊 Stock Scanner Pro - Usando yahoo-finance2`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });

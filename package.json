@@ -1,28 +1,20 @@
 {
   "name": "stock-scanner-pro",
   "version": "1.0.0",
-  "description": "Plataforma de análisis técnico de acciones y ETFs",
+  "description": "Stock Scanner Pro - Análisis técnico de acciones",
   "main": "server.js",
-  "engines": {
-    "node": "18.x"
-  },
   "scripts": {
     "start": "node server.js"
   },
-  "keywords": [
-    "stock",
-    "scanner",
-    "finance",
-    "trading"
-  ],
-  "author": "Tu Nombre",
-  "license": "ISC",
+  "engines": {
+    "node": "18.x"
+  },
   "dependencies": {
-    "bcryptjs": "^2.4.3",
-    "cors": "^2.8.5",
     "express": "^4.18.2",
+    "cors": "^2.8.5",
     "jsonwebtoken": "^9.0.2",
-    "node-fetch": "^2.7.0",
-    "pg": "^8.18.0"
+    "bcryptjs": "^2.4.3",
+    "pg": "^8.11.3",
+    "yahoo-finance2": "^2.11.3"
   }
 }
