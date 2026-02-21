@@ -1,4 +1,4 @@
-// server.js - Versión original que funcionaba
+// server.js - Con verificación triple
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -80,7 +80,8 @@ function authenticateAdmin(req, res, next) {
     });
 }
 
-async function getYahooData(ticker) {
+// Función para obtener datos de Yahoo Finance (una sola vez)
+async function getYahooDataSingle(ticker) {
     // Método 1: Query1
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&includePrePost=false`;
@@ -97,14 +98,11 @@ async function getYahooData(ticker) {
             if (data.chart?.result?.[0]) {
                 const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
-                    console.log(`✅ Query1 exitoso para ${ticker}: ${closes.length} días`);
                     return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {
-        console.log(`❌ Query1 falló para ${ticker}`);
-    }
+    } catch (e) {}
 
     // Método 2: Proxy
     try {
@@ -117,16 +115,70 @@ async function getYahooData(ticker) {
             if (data.chart?.result?.[0]) {
                 const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
-                    console.log(`✅ Proxy exitoso para ${ticker}: ${closes.length} días`);
                     return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {
-        console.log(`❌ Proxy falló para ${ticker}`);
-    }
+    } catch (e) {}
 
     return null;
+}
+
+// Función con VERIFICACIÓN TRIPLE
+async function getYahooDataVerified(ticker) {
+    console.log(`🔄 Verificación triple para ${ticker}...`);
+    
+    const results = [];
+    
+    // Obtener datos 3 veces
+    for (let i = 1; i <= 3; i++) {
+        const data = await getYahooDataSingle(ticker);
+        if (data) {
+            results.push(data);
+            console.log(`  ✅ Intento ${i}: Precio=${data.currentPrice.toFixed(2)}, Días=${data.closes.length}`);
+        } else {
+            console.log(`  ❌ Intento ${i}: Falló`);
+        }
+        
+        // Esperar 500ms entre intentos para no saturar
+        if (i < 3) {
+            await new Promise(resolve => setTimeout(resolve, 500));
+        }
+    }
+    
+    // Si no obtuvimos ningún resultado
+    if (results.length === 0) {
+        console.log(`❌ ${ticker}: Todos los intentos fallaron`);
+        return null;
+    }
+    
+    // Si solo obtuvimos 1 resultado, usarlo
+    if (results.length === 1) {
+        console.log(`⚠️ ${ticker}: Solo 1 resultado válido`);
+        return results[0];
+    }
+    
+    // Comparar precios actuales (deben estar dentro de 2% de diferencia)
+    const prices = results.map(r => r.currentPrice);
+    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
+    const tolerance = avgPrice * 0.02; // 2% de tolerancia
+    
+    // Filtrar resultados que están dentro de la tolerancia
+    const validResults = results.filter(r => Math.abs(r.currentPrice - avgPrice) <= tolerance);
+    
+    if (validResults.length === 0) {
+        console.log(`⚠️ ${ticker}: Precios muy diferentes, usando el primero`);
+        return results[0];
+    }
+    
+    // Usar el resultado con más días de datos
+    const bestResult = validResults.reduce((best, current) => 
+        current.closes.length > best.closes.length ? current : best
+    );
+    
+    console.log(`✅ ${ticker}: Verificación exitosa - Precio=${bestResult.currentPrice.toFixed(2)} (${validResults.length}/${results.length} coinciden)`);
+    
+    return bestResult;
 }
 
 function calculateEMA(prices, period) {
@@ -377,7 +429,9 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
         for (const ticker of tickers) {
             try {
-                const yahooData = await getYahooData(ticker);
+                // USAR VERIFICACIÓN TRIPLE
+                const yahooData = await getYahooDataVerified(ticker);
+                
                 if (yahooData && yahooData.closes.length >= 50) {
                     const currentPrice = yahooData.currentPrice;
                     const previousPrice = yahooData.previousPrice;
@@ -393,12 +447,11 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
                     const etfs = ['JEPQ', 'QQQM', 'SCHG', 'SPY', 'VOO', 'QQQ', 'VTI', 'IVV', 'SPYM', 'SPMO', 'SCHD'];
                     const type = etfs.includes(ticker.toUpperCase()) ? 'ETF' : 'Stock';
                     marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi: Math.round(rsi), signal, nivelLC, smaPosition });
-                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi.toFixed(2)}, EMA20=${ema20.toFixed(2)}, EMA50=${ema50.toFixed(2)}, EMA100=${ema100.toFixed(2)}, EMA200=${ema200.toFixed(2)}, Señal=${signal}`);
                 } else {
-                    throw new Error('Datos insuficientes');
+                    throw new Error('Datos insuficientes después de verificación');
                 }
             } catch (error) {
-                console.error(`Error con ${ticker}:`, error.message);
+                console.error(`Error final con ${ticker}:`, error.message);
                 marketData.push({ ticker, type: 'Stock', price: 'N/A', changePercent: '0.00', rsi: 50, signal: 'Interesante', nivelLC: 50, smaPosition: 'Actualizando...' });
             }
         }
@@ -411,6 +464,6 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Versión original`);
+    console.log(`📊 Stock Scanner Pro - Con verificación triple`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
