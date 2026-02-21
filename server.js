@@ -1,11 +1,14 @@
-// server.js - Con cálculo de RSI corregido (método de Wilder)
+// server.js - Usando Python yfinance para datos precisos
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
-const fetch = require('node-fetch');
+const { exec } = require('child_process');
 const { Pool } = require('pg');
 const path = require('path');
+const util = require('util');
+
+const execPromise = util.promisify(exec);
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -41,31 +44,17 @@ app.get('/api/setup-admin', async (req, res) => {
                 'INSERT INTO users (name, email, password, subscription_status, subscription_expiry, is_admin) VALUES ($1, $2, $3, $4, $5, $6)',
                 ['Administrador', adminEmail, hashedPassword, 'active', expiryDate, true]
             );
-            
-            res.json({ 
-                success: true, 
-                message: 'Admin creado exitosamente',
-                email: adminEmail
-            });
+            res.json({ success: true, message: 'Admin creado exitosamente', email: adminEmail });
         } else {
             await pool.query(
                 'UPDATE users SET is_admin = TRUE, password = $1, subscription_status = $2, subscription_expiry = $3 WHERE email = $4', 
                 [hashedPassword, 'active', expiryDate, adminEmail]
             );
-            
-            res.json({ 
-                success: true, 
-                message: 'Usuario actualizado: admin + contraseña reseteada',
-                email: adminEmail,
-                password: 'Admin2024!Segura'
-            });
+            res.json({ success: true, message: 'Usuario actualizado: admin + contraseña reseteada', email: adminEmail, password: 'Admin2024!Segura' });
         }
     } catch (error) {
         console.error('❌ Error en setup-admin:', error);
-        res.status(500).json({ 
-            success: false, 
-            error: error.message 
-        });
+        res.status(500).json({ success: false, error: error.message });
     }
 });
 
@@ -94,45 +83,37 @@ function authenticateAdmin(req, res, next) {
     });
 }
 
+// Función para obtener datos usando Python yfinance
 async function getYahooData(ticker) {
     try {
-        const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&includePrePost=false`;
-        const response = await fetch(url, {
-            headers: {
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36',
-                'Accept': '*/*',
-                'Referer': 'https://finance.yahoo.com/',
-            },
-            timeout: 10000
-        });
-        if (response.ok) {
-            const data = await response.json();
-            if (data.chart?.result?.[0]) {
-                const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
-                if (closes.length >= 50) {
-                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
-                }
-            }
+        const pythonScript = path.join(__dirname, 'get_stock_data.py');
+        const { stdout, stderr } = await execPromise(`python3 ${pythonScript} ${ticker}`);
+        
+        if (stderr) {
+            console.log(`⚠️ Python stderr para ${ticker}:`, stderr);
         }
-    } catch (e) {}
-
-    try {
-        const yahooUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`);
-        const url = `https://api.allorigins.win/get?url=${yahooUrl}`;
-        const response = await fetch(url, { timeout: 15000 });
-        if (response.ok) {
-            const proxyData = await response.json();
-            const data = JSON.parse(proxyData.contents);
-            if (data.chart?.result?.[0]) {
-                const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
-                if (closes.length >= 50) {
-                    return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
-                }
-            }
+        
+        const result = JSON.parse(stdout);
+        
+        if (result.error) {
+            console.log(`❌ Error Python para ${ticker}:`, result.error);
+            return null;
         }
-    } catch (e) {}
-
-    return null;
+        
+        if (result.success && result.closes && result.closes.length >= 50) {
+            console.log(`✅ Datos obtenidos vía Python para ${ticker}: ${result.closes.length} días`);
+            return {
+                currentPrice: result.currentPrice,
+                previousPrice: result.previousPrice,
+                closes: result.closes
+            };
+        }
+        
+        return null;
+    } catch (error) {
+        console.error(`❌ Error ejecutando Python para ${ticker}:`, error.message);
+        return null;
+    }
 }
 
 function calculateEMA(prices, period) {
@@ -145,33 +126,22 @@ function calculateEMA(prices, period) {
     return ema;
 }
 
-// RSI CORREGIDO - Método de Wilder (igual que Yahoo Finance)
 function calculateRSI(prices, period = 14) {
-    if (prices.length < period + 100) return 50; // Necesitamos más datos para estabilizar
-    
-    // Usar los últimos 200 datos para cálculo más estable
+    if (prices.length < period + 100) return 50;
     const recentPrices = prices.slice(-200);
-    
-    // Primera media: promedio simple de ganancias y pérdidas
-    let gains = 0;
-    let losses = 0;
+    let gains = 0, losses = 0;
     
     for (let i = 1; i <= period; i++) {
         const change = recentPrices[i] - recentPrices[i - 1];
-        if (change > 0) {
-            gains += change;
-        } else {
-            losses += Math.abs(change);
-        }
+        if (change > 0) gains += change;
+        else losses += Math.abs(change);
     }
     
     let avgGain = gains / period;
     let avgLoss = losses / period;
     
-    // Smoothed moving average (método de Wilder)
     for (let i = period + 1; i < recentPrices.length; i++) {
         const change = recentPrices[i] - recentPrices[i - 1];
-        
         if (change > 0) {
             avgGain = (avgGain * (period - 1) + change) / period;
             avgLoss = (avgLoss * (period - 1)) / period;
@@ -182,11 +152,9 @@ function calculateRSI(prices, period = 14) {
     }
     
     if (avgLoss === 0) return 100;
-    
     const rs = avgGain / avgLoss;
     const rsi = 100 - (100 / (1 + rs));
-    
-    return Math.round(rsi * 100) / 100; // Redondear a 2 decimales
+    return Math.round(rsi * 100) / 100;
 }
 
 function determineSignal(price, ema20, ema50, ema100, ema200) {
@@ -252,15 +220,7 @@ app.post('/api/auth/register', async (req, res) => {
         res.json({
             message: 'Registro exitoso - 7 días de prueba gratis',
             token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                subscription: {
-                    status: user.subscription_status,
-                    expiryDate: user.subscription_expiry
-                }
-            }
+            user: { id: user.id, name: user.name, email: user.email, subscription: { status: user.subscription_status, expiryDate: user.subscription_expiry } }
         });
     } catch (error) {
         console.error('Error en registro:', error);
@@ -291,16 +251,7 @@ app.post('/api/auth/login', async (req, res) => {
         res.json({
             message: 'Login exitoso',
             token,
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                isAdmin: user.is_admin || false,
-                subscription: {
-                    status: user.subscription_status,
-                    expiryDate: user.subscription_expiry
-                }
-            }
+            user: { id: user.id, name: user.name, email: user.email, isAdmin: user.is_admin || false, subscription: { status: user.subscription_status, expiryDate: user.subscription_expiry } }
         });
     } catch (error) {
         console.error('Error en login:', error);
@@ -323,16 +274,7 @@ app.get('/api/auth/validate', authenticateToken, async (req, res) => {
         }
         
         res.json({
-            user: {
-                id: user.id,
-                name: user.name,
-                email: user.email,
-                isAdmin: user.is_admin || false,
-                subscription: {
-                    status: user.subscription_status,
-                    expiryDate: user.subscription_expiry
-                }
-            }
+            user: { id: user.id, name: user.name, email: user.email, isAdmin: user.is_admin || false, subscription: { status: user.subscription_status, expiryDate: user.subscription_expiry } }
         });
     } catch (error) {
         console.error('Error en validación:', error);
@@ -342,12 +284,9 @@ app.get('/api/auth/validate', authenticateToken, async (req, res) => {
 
 app.get('/api/admin/users', authenticateAdmin, async (req, res) => {
     try {
-        const result = await pool.query(
-            'SELECT id, name, email, subscription_status, subscription_expiry, created_at FROM users WHERE is_admin = FALSE OR is_admin IS NULL ORDER BY created_at DESC'
-        );
+        const result = await pool.query('SELECT id, name, email, subscription_status, subscription_expiry, created_at FROM users WHERE is_admin = FALSE OR is_admin IS NULL ORDER BY created_at DESC');
         res.json({ users: result.rows });
     } catch (error) {
-        console.error('Error obteniendo usuarios:', error);
         res.status(500).json({ message: 'Error obteniendo usuarios' });
     }
 });
@@ -357,15 +296,9 @@ app.post('/api/admin/activate-user', authenticateAdmin, async (req, res) => {
         const { userId, days } = req.body;
         const daysToAdd = days || 30;
         const newExpiry = new Date(Date.now() + daysToAdd * 24 * 60 * 60 * 1000);
-        
-        await pool.query(
-            'UPDATE users SET subscription_status = $1, subscription_expiry = $2 WHERE id = $3',
-            ['active', newExpiry, userId]
-        );
-        
+        await pool.query('UPDATE users SET subscription_status = $1, subscription_expiry = $2 WHERE id = $3', ['active', newExpiry, userId]);
         res.json({ message: `Usuario activado por ${daysToAdd} días` });
     } catch (error) {
-        console.error('Error activando usuario:', error);
         res.status(500).json({ message: 'Error activando usuario' });
     }
 });
@@ -376,7 +309,6 @@ app.post('/api/admin/block-user', authenticateAdmin, async (req, res) => {
         await pool.query('UPDATE users SET subscription_status = $1 WHERE id = $2', ['blocked', userId]);
         res.json({ message: 'Usuario bloqueado' });
     } catch (error) {
-        console.error('Error bloqueando usuario:', error);
         res.status(500).json({ message: 'Error bloqueando usuario' });
     }
 });
@@ -385,15 +317,12 @@ app.post('/api/admin/extend-trial', authenticateAdmin, async (req, res) => {
     try {
         const { userId, days } = req.body;
         const daysToAdd = days || 7;
-        
         const userResult = await pool.query('SELECT subscription_expiry FROM users WHERE id = $1', [userId]);
         const currentExpiry = new Date(userResult.rows[0].subscription_expiry);
         const newExpiry = new Date(currentExpiry.getTime() + daysToAdd * 24 * 60 * 60 * 1000);
-        
         await pool.query('UPDATE users SET subscription_expiry = $1 WHERE id = $2', [newExpiry, userId]);
         res.json({ message: `Suscripción extendida por ${daysToAdd} días` });
     } catch (error) {
-        console.error('Error extendiendo suscripción:', error);
         res.status(500).json({ message: 'Error extendiendo suscripción' });
     }
 });
@@ -404,7 +333,6 @@ app.get('/api/tickers', authenticateToken, async (req, res) => {
         const tickers = result.rows.length > 0 ? result.rows.map(r => r.ticker) : ['AAPL', 'MSFT', 'GOOGL'];
         res.json({ tickers });
     } catch (error) {
-        console.error('Error obteniendo tickers:', error);
         res.json({ tickers: ['AAPL', 'MSFT', 'GOOGL'] });
     }
 });
@@ -418,7 +346,6 @@ app.post('/api/tickers', authenticateToken, async (req, res) => {
         }
         res.json({ message: 'Tickers guardados', tickers });
     } catch (error) {
-        console.error('Error guardando tickers:', error);
         res.status(500).json({ message: 'Error guardando tickers' });
     }
 });
@@ -453,11 +380,12 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
                     const etfs = ['JEPQ', 'QQQM', 'SCHG', 'SPY', 'VOO', 'QQQ', 'VTI', 'IVV', 'SPYM', 'SPMO', 'SCHD'];
                     const type = etfs.includes(ticker.toUpperCase()) ? 'ETF' : 'Stock';
                     marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi: Math.round(rsi), signal, nivelLC, smaPosition });
-                    console.log(`✅ ${ticker}: Precio=$${currentPrice.toFixed(2)}, RSI=${rsi.toFixed(2)}, EMA20=${ema20?.toFixed(2)}`);
+                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi.toFixed(2)}, EMA20=${ema20?.toFixed(2)}, Señal=${signal}`);
                 } else {
                     throw new Error('Datos insuficientes');
                 }
             } catch (error) {
+                console.error(`Error con ${ticker}:`, error.message);
                 marketData.push({ ticker, type: 'Stock', price: 'N/A', changePercent: '0.00', rsi: 50, signal: 'Interesante', nivelLC: 50, smaPosition: 'Actualizando...' });
             }
         }
@@ -470,6 +398,6 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - RSI corregido (método de Wilder)`);
+    console.log(`📊 Stock Scanner Pro - Usando Python yfinance`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
