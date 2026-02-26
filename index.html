@@ -13,33 +13,393 @@
 
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: #fff;
+            background: #f8f9fa;
+            color: #1a1a1a;
             min-height: 100vh;
+            padding-bottom: 40px;
         }
 
-        .auth-container {
+        /* Header */
+        .header {
+            background: white;
+            border-bottom: 1px solid #e5e7eb;
+            padding: 20px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
             display: flex;
-            justify-content: center;
+            justify-content: space-between;
             align-items: center;
-            min-height: 100vh;
-            padding: 20px;
         }
 
-        .auth-box {
-            background: rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+        .logo {
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .subscription-badge {
+            padding: 6px 12px;
             border-radius: 20px;
-            padding: 40px;
-            max-width: 450px;
-            width: 100%;
-            box-shadow: 0 8px 32px rgba(0,0,0,0.3);
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
         }
 
-        .auth-box h2 {
+        .subscription-badge.active {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .subscription-badge.trial {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .logout-btn {
+            background: #f3f4f6;
+            color: #374151;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .logout-btn:hover {
+            background: #e5e7eb;
+        }
+
+        /* Container */
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 30px 20px;
+        }
+
+        /* Stats Bar */
+        .stats-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .update-info {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .auto-update {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        /* Ticker Input Section */
+        .ticker-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 24px;
+            border: 1px solid #e5e7eb;
+        }
+
+        .ticker-section h2 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #1a1a1a;
+            margin-bottom: 12px;
+        }
+
+        .ticker-input-group {
+            display: flex;
+            gap: 12px;
+        }
+
+        .ticker-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+            transition: all 0.2s;
+        }
+
+        .ticker-input:focus {
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
+        }
+
+        .add-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .add-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .hint {
+            color: #6b7280;
+            font-size: 13px;
+            margin-top: 8px;
+        }
+
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            border: 1px solid #e5e7eb;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #f9fafb;
+            border-bottom: 2px solid #e5e7eb;
+        }
+
+        th {
+            padding: 16px;
+            text-align: left;
+            font-weight: 700;
+            font-size: 12px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            color: #6b7280;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #374151;
+        }
+
+        tr:hover {
+            background: #f9fafb;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        /* Ticker Link */
+        .ticker-link {
+            color: #1a1a1a;
+            text-decoration: none;
+            font-weight: 700;
+            font-size: 15px;
+            transition: color 0.2s;
+        }
+
+        .ticker-link:hover {
+            color: #10b981;
+        }
+
+        /* Type Badge */
+        .type-badge {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+        }
+
+        .type-badge.stock {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .type-badge.etf {
+            background: #fce7f3;
+            color: #be185d;
+        }
+
+        /* RSI */
+        .rsi-value {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        /* Price */
+        .price {
+            font-weight: 700;
+            font-size: 16px;
+            color: #1a1a1a;
+        }
+
+        .change-positive {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .change-negative {
+            color: #ef4444;
+            font-weight: 600;
+        }
+
+        /* Signal Badge */
+        .signal {
+            padding: 6px 14px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+            display: inline-block;
+        }
+
+        .signal.muy-favorable {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .signal.favorable {
+            background: #d1fae5;
+            color: #047857;
+        }
+
+        .signal.interesante {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .signal.a-considerar {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .signal.no-favorable {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        /* Level LC */
+        .level-bar {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .level-progress {
+            width: 80px;
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+        }
+
+        .level-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.3s;
+        }
+
+        .level-fill.high {
+            background: #10b981;
+        }
+
+        .level-fill.medium {
+            background: #f59e0b;
+        }
+
+        .level-fill.low {
+            background: #ef4444;
+        }
+
+        .level-number {
+            font-weight: 700;
+            font-size: 14px;
+            color: #374151;
+        }
+
+        /* Delete Button */
+        .delete-btn {
+            background: #fee2e2;
+            color: #991b1b;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 13px;
+            transition: all 0.2s;
+        }
+
+        .delete-btn:hover {
+            background: #fecaca;
+        }
+
+        /* Login Screen */
+        .login-container {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+        }
+
+        .login-box {
+            background: white;
+            padding: 48px;
+            border-radius: 16px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .login-logo {
+            font-size: 32px;
+            font-weight: 700;
             text-align: center;
-            margin-bottom: 30px;
-            font-size: 2rem;
+            margin-bottom: 8px;
+            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .login-subtitle {
+            text-align: center;
+            color: #6b7280;
+            margin-bottom: 32px;
+            font-size: 14px;
         }
 
         .form-group {
@@ -49,421 +409,68 @@
         .form-group label {
             display: block;
             margin-bottom: 8px;
-            font-weight: 500;
+            font-weight: 600;
+            color: #374151;
+            font-size: 14px;
         }
 
         .form-group input {
             width: 100%;
-            padding: 12px 15px;
-            border: none;
+            padding: 12px 16px;
+            border: 2px solid #e5e7eb;
             border-radius: 8px;
-            font-size: 1rem;
-            background: rgba(255,255,255,0.9);
-            color: #333;
+            font-size: 15px;
+            transition: all 0.2s;
         }
 
         .form-group input:focus {
-            outline: 2px solid #4CAF50;
+            outline: none;
+            border-color: #10b981;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1);
         }
 
-        .btn {
+        .login-btn {
             width: 100%;
             padding: 14px;
-            border: none;
-            border-radius: 8px;
-            font-size: 1rem;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-
-        .btn-primary {
-            background: #4CAF50;
-            color: white;
-        }
-
-        .btn-primary:hover {
-            background: #45a049;
-            transform: translateY(-2px);
-        }
-
-        .btn-secondary {
-            background: transparent;
-            color: white;
-            border: 2px solid white;
-            margin-top: 10px;
-        }
-
-        .btn-secondary:hover {
-            background: rgba(255,255,255,0.1);
-        }
-
-        .subscription-info {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            text-align: center;
-        }
-
-        .price {
-            font-size: 2.5rem;
-            font-weight: bold;
-            color: #4CAF50;
-            margin: 10px 0;
-        }
-
-        .features {
-            text-align: left;
-            margin-top: 20px;
-        }
-
-        .features li {
-            margin: 10px 0;
-            padding-left: 25px;
-            position: relative;
-        }
-
-        .features li:before {
-            content: "✓";
-            position: absolute;
-            left: 0;
-            color: #4CAF50;
-            font-weight: bold;
-        }
-
-        .dashboard {
-            display: none;
-            padding: 20px;
-        }
-
-        .dashboard.active {
-            display: block;
-        }
-
-        .container {
-            max-width: 1400px;
-            margin: 0 auto;
-        }
-
-        .top-bar {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255,255,255,0.1);
-            padding: 15px 25px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            flex-wrap: wrap;
-            gap: 15px;
-        }
-
-        .user-info {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-
-        .subscription-status {
-            padding: 8px 16px;
-            border-radius: 20px;
-            font-size: 0.85rem;
-            font-weight: bold;
-        }
-
-        .status-active {
-            background: #4CAF50;
-        }
-
-        .status-expired {
-            background: #f44336;
-        }
-
-        .status-warning {
-            background: #FF9800;
-        }
-
-        .btn-logout {
-            padding: 10px 20px;
-            background: #f44336;
+            background: #10b981;
             color: white;
             border: none;
             border-radius: 8px;
+            font-weight: 700;
+            font-size: 15px;
             cursor: pointer;
-            font-weight: bold;
+            transition: all 0.2s;
         }
 
-        header h1 {
-            font-size: 2.5rem;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        .login-btn:hover {
+            background: #059669;
+            transform: translateY(-1px);
+        }
+
+        .toggle-auth {
             text-align: center;
+            margin-top: 20px;
+            color: #6b7280;
+            font-size: 14px;
         }
 
-        .update-info {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            background: rgba(255,255,255,0.1);
-            padding: 15px 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .add-ticker-section {
-            background: rgba(255,255,255,0.1);
-            padding: 20px;
-            border-radius: 10px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-        }
-
-        .add-ticker-form {
-            display: flex;
-            gap: 10px;
-            flex-wrap: wrap;
-        }
-
-        .add-ticker-form input {
-            flex: 1;
-            min-width: 200px;
-            padding: 12px;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            text-transform: uppercase;
-        }
-
-        .add-ticker-form button {
-            padding: 12px 30px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
-            font-size: 1rem;
-            cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s;
-        }
-
-        .scanner-table {
-            background: rgba(255,255,255,0.1);
-            border-radius: 10px;
-            overflow: hidden;
-            backdrop-filter: blur(10px);
-            overflow-x: auto;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
-        thead {
-            background: rgba(0,0,0,0.3);
-        }
-
-        th {
-            padding: 15px;
-            text-align: left;
-            font-weight: 600;
-            font-size: 0.9rem;
-            white-space: nowrap;
-        }
-
-        td {
-            padding: 15px;
-            border-top: 1px solid rgba(255,255,255,0.1);
-        }
-
-        tr:hover {
-            background: rgba(255,255,255,0.05);
-        }
-
-        .ticker-name {
-            font-weight: bold;
-            font-size: 1.1rem;
-        }
-
-        .ticker-link {
-            color: #fff;
+        .toggle-auth a {
+            color: #10b981;
             text-decoration: none;
-            font-weight: bold;
-            font-size: 1.1rem;
-            padding: 5px 10px;
-            border-radius: 5px;
-            transition: all 0.3s;
-            display: inline-block;
+            font-weight: 600;
         }
 
-        .ticker-link:hover {
-            background: rgba(255,255,255,0.2);
-            transform: scale(1.05);
-            color: #4CAF50;
-        }
-
-        .type-badge {
-            display: inline-block;
-            padding: 4px 8px;
-            border-radius: 4px;
-            font-size: 0.75rem;
-            font-weight: bold;
-        }
-
-        .type-stock {
-            background: #2196F3;
-        }
-
-        .type-etf {
-            background: #9C27B0;
-        }
-
-        .signal-muy-favorable {
-            background: #1B5E20;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            display: inline-block;
-        }
-
-        .signal-favorable {
-            background: #4CAF50;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            display: inline-block;
-        }
-
-        .signal-interesante {
-            background: #2196F3;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            display: inline-block;
-        }
-
-        .signal-considerar {
-            background: #FF9800;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            display: inline-block;
-        }
-
-        .signal-no-favorable {
-            background: #f44336;
-            color: white;
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-            font-size: 0.85rem;
-            display: inline-block;
-        }
-
-        .nivel-bar {
-            width: 100%;
-            height: 8px;
-            background: rgba(255,255,255,0.2);
-            border-radius: 4px;
-            overflow: hidden;
-        }
-
-        .nivel-fill {
-            height: 100%;
-            border-radius: 4px;
-            transition: width 0.3s;
-        }
-
-        .nivel-high {
-            background: #4CAF50;
-        }
-
-        .nivel-medium {
-            background: #FF9800;
-        }
-
-        .nivel-low {
-            background: #f44336;
-        }
-
-        .sma-status {
-            font-size: 0.85rem;
-            padding: 4px 8px;
-            border-radius: 4px;
-            display: inline-block;
-        }
-
-        .sma-above {
-            background: rgba(76, 175, 80, 0.3);
-            color: #4CAF50;
-        }
-
-        .sma-below {
-            background: rgba(244, 67, 54, 0.3);
-            color: #f44336;
-        }
-
-        .sma-mixed {
-            background: rgba(33, 150, 243, 0.3);
-            color: #2196F3;
-        }
-
-        .delete-btn {
-            background: #f44336;
-            color: white;
-            border: none;
-            padding: 6px 12px;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .price-positive {
-            color: #4CAF50;
-            font-weight: bold;
-        }
-
-        .price-negative {
-            color: #f44336;
-            font-weight: bold;
-        }
-
-        .loading {
-            text-align: center;
-            padding: 40px;
-        }
-
-        .spinner {
-            border: 4px solid rgba(255,255,255,0.3);
-            border-radius: 50%;
-            border-top: 4px solid white;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-            margin: 0 auto 20px;
-        }
-
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        .toggle-auth a:hover {
+            text-decoration: underline;
         }
 
         .error-message {
-            background: #f44336;
-            color: white;
-            padding: 12px;
+            background: #fee2e2;
+            color: #991b1b;
+            padding: 12px 16px;
             border-radius: 8px;
-            margin-bottom: 15px;
+            margin-bottom: 20px;
+            font-size: 14px;
             display: none;
         }
 
@@ -471,130 +478,121 @@
             display: block;
         }
 
+        .hidden {
+            display: none;
+        }
+
+        /* Responsive */
         @media (max-width: 768px) {
-            .auth-box {
-                padding: 30px 20px;
-            }
-
-            header h1 {
-                font-size: 1.8rem;
-            }
-
-            .top-bar {
+            .header-content {
                 flex-direction: column;
-                align-items: flex-start;
+                gap: 12px;
+            }
+
+            .stats-bar {
+                flex-direction: column;
+                gap: 12px;
+                text-align: center;
+            }
+
+            .ticker-input-group {
+                flex-direction: column;
+            }
+
+            table {
+                font-size: 13px;
             }
 
             th, td {
-                padding: 10px 8px;
-                font-size: 0.85rem;
+                padding: 12px 8px;
+            }
+
+            .login-box {
+                padding: 32px 24px;
+                margin: 20px;
             }
         }
     </style>
 </head>
 <body>
-    <div id="authScreen" class="auth-container">
-        <div class="auth-box">
-            <h2>🚀 Stock Scanner Pro</h2>
+    <!-- LOGIN SCREEN -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <div class="login-logo">Stock Scanner Pro</div>
+            <div class="login-subtitle">Análisis técnico en tiempo real</div>
             
             <div id="errorMessage" class="error-message"></div>
-
-            <div id="loginForm">
-                <form onsubmit="login(event)">
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="loginEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" id="loginPassword" required>
-                    </div>
-                    <button type="submit" class="btn btn-primary">Iniciar Sesión</button>
-                </form>
-                <button class="btn btn-secondary" onclick="showRegister()">Crear Cuenta Nueva</button>
-            </div>
-
-            <div id="registerForm" style="display: none;">
-                <form onsubmit="register(event)">
-                    <div class="form-group">
-                        <label>Nombre completo</label>
-                        <input type="text" id="registerName" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Email</label>
-                        <input type="email" id="registerEmail" required>
-                    </div>
-                    <div class="form-group">
-                        <label>Contraseña</label>
-                        <input type="password" id="registerPassword" required minlength="6">
-                    </div>
-                    
-                    <div class="subscription-info">
-                        <h3>📊 Suscripción Mensual</h3>
-                        <div class="price">$20<span style="font-size: 1rem;">/mes</span></div>
-                        <ul class="features">
-                            <li>Scanner en tiempo real con Yahoo Finance</li>
-                            <li>EMAs 20, 50, 100, 200 (datos 1 año)</li>
-                            <li>Señales específicas de compra/venta</li>
-                            <li>Links directos a Yahoo Finance</li>
-                            <li>Tickers ilimitados personalizados</li>
-                            <li>Auto-actualización cada 5 min</li>
-                        </ul>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary" style="margin-top: 20px;">
-                        Registrarse y Pagar $20
-                    </button>
-                </form>
-                <button class="btn btn-secondary" onclick="showLogin()">Ya tengo cuenta</button>
+            
+            <form id="authForm">
+                <div id="nameGroup" class="form-group hidden">
+                    <label>Nombre Completo</label>
+                    <input type="text" id="name" placeholder="Tu nombre">
+                </div>
+                
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="email" required placeholder="tu@email.com">
+                </div>
+                
+                <div class="form-group">
+                    <label>Contraseña</label>
+                    <input type="password" id="password" required placeholder="••••••••">
+                </div>
+                
+                <button type="submit" class="login-btn" id="authButton">Iniciar Sesión</button>
+            </form>
+            
+            <div class="toggle-auth">
+                <span id="toggleText">¿No tienes cuenta?</span>
+                <a href="#" id="toggleLink">Regístrate gratis</a>
             </div>
         </div>
     </div>
 
-    <div id="dashboardScreen" class="dashboard">
-        <div class="top-bar">
-            <div class="user-info">
-                <div>
-                    <strong id="userName">Usuario</strong>
-                    <div style="font-size: 0.85rem; opacity: 0.8;" id="userEmail"></div>
-                </div>
-                <div>
-                    <span class="subscription-status" id="subscriptionStatus">
-                        ✓ Activa
-                    </span>
-                    <div style="font-size: 0.85rem; margin-top: 5px;" id="subscriptionExpiry"></div>
+    <!-- MAIN APP -->
+    <div id="mainApp" class="hidden">
+        <!-- Header -->
+        <div class="header">
+            <div class="header-content">
+                <div class="logo">Stock Scanner Pro</div>
+                <div class="user-info">
+                    <span class="user-name" id="userName"></span>
+                    <span class="subscription-badge" id="subscriptionBadge"></span>
+                    <button class="logout-btn" onclick="logout()">Cerrar Sesión</button>
                 </div>
             </div>
-            <button class="btn-logout" onclick="logout()">Cerrar Sesión</button>
         </div>
 
+        <!-- Container -->
         <div class="container">
-            <header>
-                <h1>📊 Stock Scanner Pro</h1>
-                <p>Análisis técnico con EMAs 20,50,100,200 - Datos de 1 año</p>
-            </header>
-
-            <div class="update-info">
-                <div class="last-update">
-                    Última actualización: <span id="lastUpdate">Cargando...</span>
+            <!-- Stats Bar -->
+            <div class="stats-bar">
+                <div class="update-info">
+                    <strong>Última actualización:</strong> <span id="lastUpdate">Cargando...</span>
                 </div>
-                <div>
+                <div class="auto-update">
                     Auto-actualización: <strong>ACTIVA</strong> (cada 5 min)
                 </div>
             </div>
 
-            <div class="add-ticker-section">
-                <h3 style="margin-bottom: 15px;">➕ Agregar Ticker Personalizado</h3>
-                <div class="add-ticker-form">
-                    <input type="text" id="newTicker" placeholder="Ej: AAPL, MSFT, QQQ..." />
-                    <button onclick="addTicker()">Agregar</button>
+            <!-- Ticker Input -->
+            <div class="ticker-section">
+                <h2>➕ Agregar Ticker Personalizado</h2>
+                <div class="ticker-input-group">
+                    <input 
+                        type="text" 
+                        id="tickerInput" 
+                        class="ticker-input" 
+                        placeholder="Ej: AAPL, MSFT, QQQ..."
+                        onkeypress="if(event.key==='Enter') addTicker()"
+                    >
+                    <button class="add-btn" onclick="addTicker()">Agregar</button>
                 </div>
-                <p style="margin-top: 10px; font-size: 0.9rem; opacity: 0.8;">
-                    💡 Click en el ticker para ver análisis completo en Yahoo Finance
-                </p>
+                <div class="hint">💡 Click en el ticker para ver análisis completo en Yahoo Finance</div>
             </div>
 
-            <div class="scanner-table">
+            <!-- Table -->
+            <div class="table-container">
                 <table>
                     <thead>
                         <tr>
@@ -609,10 +607,9 @@
                             <th>Acción</th>
                         </tr>
                     </thead>
-                    <tbody id="scannerBody">
+                    <tbody id="stockTable">
                         <tr>
-                            <td colspan="9" class="loading">
-                                <div class="spinner"></div>
+                            <td colspan="9" style="text-align: center; padding: 40px; color: #6b7280;">
                                 Cargando datos del mercado...
                             </td>
                         </tr>
@@ -622,6 +619,273 @@
         </div>
     </div>
 
-    <script src="app.js"></script>
+    <script>
+        const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000/api' : '/api';
+        let userToken = localStorage.getItem('token');
+        let currentUser = null;
+        let marketData = [];
+        let isLogin = true;
+        let updateInterval;
+
+        if (userToken) {
+            validateToken();
+        }
+
+        document.getElementById('authForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (isLogin) {
+                await login();
+            } else {
+                await register();
+            }
+        });
+
+        document.getElementById('toggleLink').addEventListener('click', (e) => {
+            e.preventDefault();
+            isLogin = !isLogin;
+            const nameGroup = document.getElementById('nameGroup');
+            const authButton = document.getElementById('authButton');
+            const toggleText = document.getElementById('toggleText');
+            const toggleLink = document.getElementById('toggleLink');
+
+            if (isLogin) {
+                nameGroup.classList.add('hidden');
+                authButton.textContent = 'Iniciar Sesión';
+                toggleText.textContent = '¿No tienes cuenta?';
+                toggleLink.textContent = 'Regístrate gratis';
+            } else {
+                nameGroup.classList.remove('hidden');
+                authButton.textContent = 'Crear Cuenta';
+                toggleText.textContent = '¿Ya tienes cuenta?';
+                toggleLink.textContent = 'Inicia sesión';
+            }
+        });
+
+        async function register() {
+            const name = document.getElementById('name').value;
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_URL}/auth/register`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    userToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', userToken);
+                    showMainApp();
+                } else {
+                    showError(data.message || 'Error al registrarse');
+                }
+            } catch (error) {
+                showError('Error de conexión');
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            try {
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (response.ok) {
+                    userToken = data.token;
+                    currentUser = data.user;
+                    localStorage.setItem('token', userToken);
+                    showMainApp();
+                } else {
+                    showError(data.message || 'Credenciales incorrectas');
+                }
+            } catch (error) {
+                showError('Error de conexión');
+            }
+        }
+
+        async function validateToken() {
+            try {
+                const response = await fetch(`${API_URL}/auth/validate`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    currentUser = data.user;
+                    showMainApp();
+                } else {
+                    logout();
+                }
+            } catch (error) {
+                logout();
+            }
+        }
+
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            document.getElementById('userName').textContent = currentUser.name;
+            
+            const badge = document.getElementById('subscriptionBadge');
+            badge.textContent = currentUser.subscription.status === 'trial' ? 'Prueba Gratis' : 'Activo';
+            badge.className = `subscription-badge ${currentUser.subscription.status}`;
+
+            loadTickers();
+            startAutoUpdate();
+        }
+
+        function logout() {
+            localStorage.removeItem('token');
+            userToken = null;
+            currentUser = null;
+            clearInterval(updateInterval);
+            document.getElementById('mainApp').classList.add('hidden');
+            document.getElementById('loginScreen').classList.remove('hidden');
+        }
+
+        function showError(message) {
+            const errorDiv = document.getElementById('errorMessage');
+            errorDiv.textContent = message;
+            errorDiv.classList.add('show');
+            setTimeout(() => errorDiv.classList.remove('show'), 5000);
+        }
+
+        async function loadTickers() {
+            try {
+                const response = await fetch(`${API_URL}/tickers`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                const data = await response.json();
+                await loadMarketData(data.tickers);
+            } catch (error) {
+                console.error('Error loading tickers:', error);
+            }
+        }
+
+        async function loadMarketData(tickers) {
+            try {
+                const response = await fetch(`${API_URL}/market-data`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ tickers })
+                });
+
+                const data = await response.json();
+                marketData = data.data;
+                renderTable();
+                updateLastUpdateTime();
+            } catch (error) {
+                console.error('Error loading market data:', error);
+            }
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('stockTable');
+            tbody.innerHTML = marketData.map(stock => `
+                <tr>
+                    <td>
+                        <a href="https://finance.yahoo.com/quote/${stock.ticker}" target="_blank" class="ticker-link">
+                            ${stock.ticker}
+                        </a>
+                    </td>
+                    <td><span class="type-badge ${stock.type.toLowerCase()}">${stock.type}</span></td>
+                    <td><span class="rsi-value">${stock.rsi}</span></td>
+                    <td><span class="price">$${stock.price}</span></td>
+                    <td><span class="${parseFloat(stock.changePercent) >= 0 ? 'change-positive' : 'change-negative'}">${stock.changePercent}%</span></td>
+                    <td><span class="signal ${stock.signal.toLowerCase().replace(/ /g, '-')}">${stock.signal}</span></td>
+                    <td>
+                        <div class="level-bar">
+                            <div class="level-progress">
+                                <div class="level-fill ${stock.nivelLC >= 70 ? 'high' : stock.nivelLC >= 40 ? 'medium' : 'low'}" style="width: ${stock.nivelLC}%"></div>
+                            </div>
+                            <span class="level-number">${stock.nivelLC}</span>
+                        </div>
+                    </td>
+                    <td style="font-size: 13px; color: #059669;">${stock.smaPosition}</td>
+                    <td><button class="delete-btn" onclick="deleteTicker('${stock.ticker}')">Eliminar</button></td>
+                </tr>
+            `).join('');
+        }
+
+        async function addTicker() {
+            const input = document.getElementById('tickerInput');
+            const ticker = input.value.trim().toUpperCase();
+            
+            if (!ticker) return;
+
+            const tickers = [...new Set([...marketData.map(s => s.ticker), ticker])];
+            
+            try {
+                const response = await fetch(`${API_URL}/tickers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ tickers })
+                });
+
+                if (response.ok) {
+                    input.value = '';
+                    loadTickers();
+                }
+            } catch (error) {
+                console.error('Error adding ticker:', error);
+            }
+        }
+
+        async function deleteTicker(ticker) {
+            const tickers = marketData.filter(s => s.ticker !== ticker).map(s => s.ticker);
+            
+            try {
+                const response = await fetch(`${API_URL}/tickers`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${userToken}`
+                    },
+                    body: JSON.stringify({ tickers })
+                });
+
+                if (response.ok) {
+                    loadTickers();
+                }
+            } catch (error) {
+                console.error('Error deleting ticker:', error);
+            }
+        }
+
+        function startAutoUpdate() {
+            updateInterval = setInterval(() => {
+                loadTickers();
+            }, 5 * 60 * 1000);
+        }
+
+        function updateLastUpdateTime() {
+            const now = new Date();
+            const time = now.toLocaleString('es-ES', { 
+                day: '2-digit', 
+                month: '2-digit', 
+                year: 'numeric', 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
+            document.getElementById('lastUpdate').textContent = time;
+        }
+    </script>
 </body>
 </html>
