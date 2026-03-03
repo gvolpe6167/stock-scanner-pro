@@ -1,4 +1,4 @@
-// server.js - Con posiciones EMA corregidas
+// server.js - Con verificación simple (1 llamada)
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -80,7 +80,9 @@ function authenticateAdmin(req, res, next) {
     });
 }
 
-async function getYahooDataSingle(ticker) {
+// FUNCIÓN SIMPLE - UNA SOLA LLAMADA
+async function getYahooData(ticker) {
+    // Método 1: Query1 directo
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&includePrePost=false`;
         const response = await fetch(url, {
@@ -96,12 +98,16 @@ async function getYahooDataSingle(ticker) {
             if (data.chart?.result?.[0]) {
                 const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
+                    console.log(`✅ Query1 exitoso para ${ticker}: ${closes.length} días`);
                     return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log(`❌ Query1 falló para ${ticker}`);
+    }
 
+    // Método 2: Proxy como backup
     try {
         const yahooUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`);
         const url = `https://api.allorigins.win/get?url=${yahooUrl}`;
@@ -112,62 +118,16 @@ async function getYahooDataSingle(ticker) {
             if (data.chart?.result?.[0]) {
                 const closes = data.chart.result[0].indicators.quote[0].close.filter(c => c !== null);
                 if (closes.length >= 50) {
+                    console.log(`✅ Proxy exitoso para ${ticker}: ${closes.length} días`);
                     return { currentPrice: closes[closes.length - 1], previousPrice: closes[closes.length - 2], closes };
                 }
             }
         }
-    } catch (e) {}
+    } catch (e) {
+        console.log(`❌ Proxy falló para ${ticker}`);
+    }
 
     return null;
-}
-
-async function getYahooDataVerified(ticker) {
-    console.log(`🔄 Verificación triple para ${ticker}...`);
-    
-    const results = [];
-    
-    for (let i = 1; i <= 3; i++) {
-        const data = await getYahooDataSingle(ticker);
-        if (data) {
-            results.push(data);
-            console.log(`  ✅ Intento ${i}: Precio=${data.currentPrice.toFixed(2)}, Días=${data.closes.length}`);
-        } else {
-            console.log(`  ❌ Intento ${i}: Falló`);
-        }
-        
-        if (i < 3) {
-            await new Promise(resolve => setTimeout(resolve, 500));
-        }
-    }
-    
-    if (results.length === 0) {
-        console.log(`❌ ${ticker}: Todos los intentos fallaron`);
-        return null;
-    }
-    
-    if (results.length === 1) {
-        console.log(`⚠️ ${ticker}: Solo 1 resultado válido`);
-        return results[0];
-    }
-    
-    const prices = results.map(r => r.currentPrice);
-    const avgPrice = prices.reduce((a, b) => a + b, 0) / prices.length;
-    const tolerance = avgPrice * 0.02;
-    
-    const validResults = results.filter(r => Math.abs(r.currentPrice - avgPrice) <= tolerance);
-    
-    if (validResults.length === 0) {
-        console.log(`⚠️ ${ticker}: Precios muy diferentes, usando el primero`);
-        return results[0];
-    }
-    
-    const bestResult = validResults.reduce((best, current) => 
-        current.closes.length > best.closes.length ? current : best
-    );
-    
-    console.log(`✅ ${ticker}: Verificación exitosa - Precio=${bestResult.currentPrice.toFixed(2)} (${validResults.length}/${results.length} coinciden)`);
-    
-    return bestResult;
 }
 
 function calculateEMA(prices, period) {
@@ -240,53 +200,37 @@ function calculateNivelLC(signal, rsi) {
     return Math.round(Math.min(100, Math.max(0, nivelLC)));
 }
 
-// FUNCIÓN CORREGIDA - getSMAPosition
 function getSMAPosition(price, ema20, ema50, ema100, ema200) {
-    // Verificar que todas las EMAs existan
     if (!ema20 || !ema50 || !ema100 || !ema200) {
         return 'Calculando EMAs...';
     }
 
-    // 1. DEBAJO DE TODAS LAS EMAs (Muy Favorable)
     const belowAll = price < ema20 && price < ema50 && price < ema100 && price < ema200;
     if (belowAll) {
-        console.log(`  📍 ${price.toFixed(2)} < todas (EMA20=${ema20.toFixed(2)}, EMA50=${ema50.toFixed(2)}, EMA100=${ema100.toFixed(2)}, EMA200=${ema200.toFixed(2)})`);
         return 'Debajo de todas las EMA';
     }
 
-    // 2. SOBRE TODAS LAS EMAs (No Favorable)
     const aboveAll = price > ema20 && price > ema50 && price > ema100 && price > ema200;
     if (aboveAll) {
-        console.log(`  📍 ${price.toFixed(2)} > todas (EMA20=${ema20.toFixed(2)}, EMA50=${ema50.toFixed(2)}, EMA100=${ema100.toFixed(2)}, EMA200=${ema200.toFixed(2)})`);
         return 'Sobre todas las EMA (20,50,100,200)';
     }
 
-    // 3. ENTRE EMA200 Y EMA100 (Favorable)
     if (price > ema200 && price < ema100) {
-        console.log(`  📍 ${price.toFixed(2)} entre EMA200 (${ema200.toFixed(2)}) y EMA100 (${ema100.toFixed(2)})`);
         return 'Entre EMA200 y EMA100';
     }
 
-    // 4. ENTRE EMA100 Y EMA50 (Interesante)
     if (price > ema100 && price < ema50) {
-        console.log(`  📍 ${price.toFixed(2)} entre EMA100 (${ema100.toFixed(2)}) y EMA50 (${ema50.toFixed(2)})`);
         return 'Entre EMA100 y EMA50';
     }
 
-    // 5. ENTRE EMA50 Y EMA20 (A Considerar)
     if (price > ema50 && price < ema20) {
-        console.log(`  📍 ${price.toFixed(2)} entre EMA50 (${ema50.toFixed(2)}) y EMA20 (${ema20.toFixed(2)})`);
         return 'Entre EMA50 y EMA20';
     }
 
-    // 6. CASOS MIXTOS
     if (price > ema200) {
-        console.log(`  📍 ${price.toFixed(2)} sobre EMA200 (${ema200.toFixed(2)}) - zona de fortaleza`);
         return 'Sobre EMA200 (zona de fortaleza)';
     }
 
-    // 7. CASO POR DEFECTO
-    console.log(`  📍 ${price.toFixed(2)} posición mixta (EMA20=${ema20.toFixed(2)}, EMA50=${ema50.toFixed(2)}, EMA100=${ema100.toFixed(2)}, EMA200=${ema200.toFixed(2)})`);
     return 'Posición mixta entre EMAs';
 }
 
@@ -456,7 +400,7 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
         for (const ticker of tickers) {
             try {
-                const yahooData = await getYahooDataVerified(ticker);
+                const yahooData = await getYahooData(ticker);
                 
                 if (yahooData && yahooData.closes.length >= 50) {
                     const currentPrice = yahooData.currentPrice;
@@ -473,12 +417,11 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
                     const etfs = ['JEPQ', 'QQQM', 'SCHG', 'SPY', 'VOO', 'QQQ', 'VTI', 'IVV', 'SPYM', 'SPMO', 'SCHD'];
                     const type = etfs.includes(ticker.toUpperCase()) ? 'ETF' : 'Stock';
                     marketData.push({ ticker, type, price: currentPrice.toFixed(2), changePercent, rsi: Math.round(rsi), signal, nivelLC, smaPosition });
-                    console.log(`✅ ${ticker}: $${currentPrice.toFixed(2)}, RSI=${rsi.toFixed(2)}, Señal=${signal}, Posición=${smaPosition}`);
                 } else {
-                    throw new Error('Datos insuficientes después de verificación');
+                    throw new Error('Datos insuficientes');
                 }
             } catch (error) {
-                console.error(`Error final con ${ticker}:`, error.message);
+                console.error(`Error con ${ticker}:`, error.message);
                 marketData.push({ ticker, type: 'Stock', price: 'N/A', changePercent: '0.00', rsi: 50, signal: 'Interesante', nivelLC: 50, smaPosition: 'Actualizando...' });
             }
         }
@@ -491,6 +434,6 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Posiciones EMA corregidas`);
+    console.log(`📊 Stock Scanner Pro - Verificación simple`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
