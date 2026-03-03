@@ -410,6 +410,57 @@
             color: #cbd5e1;
         }
 
+        /* EMA Position Colors - NUEVOS COLORES */
+        .ema-position {
+            font-size: 13px;
+            font-weight: 700;
+            padding: 6px 12px;
+            border-radius: 8px;
+            display: inline-block;
+        }
+
+        /* Debajo de todas = Muy Favorable = Verde brillante */
+        .ema-position.below-all {
+            background: rgba(16, 185, 129, 0.2);
+            color: #34d399;
+            border: 1px solid rgba(16, 185, 129, 0.4);
+        }
+
+        /* Entre 200-100 = Favorable = Verde claro */
+        .ema-position.between-200-100 {
+            background: rgba(16, 185, 129, 0.15);
+            color: #6ee7b7;
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        /* Entre 100-50 = Interesante = Azul */
+        .ema-position.between-100-50 {
+            background: rgba(59, 130, 246, 0.2);
+            color: #60a5fa;
+            border: 1px solid rgba(59, 130, 246, 0.4);
+        }
+
+        /* Entre 50-20 = A Considerar = Amarillo */
+        .ema-position.between-50-20 {
+            background: rgba(245, 158, 11, 0.2);
+            color: #fbbf24;
+            border: 1px solid rgba(245, 158, 11, 0.4);
+        }
+
+        /* Sobre todas = No Favorable = Rojo */
+        .ema-position.above-all {
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: 1px solid rgba(239, 68, 68, 0.4);
+        }
+
+        /* Otros casos = Gris */
+        .ema-position.other {
+            background: rgba(100, 116, 139, 0.2);
+            color: #94a3b8;
+            border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
         .delete-btn {
             background: rgba(239, 68, 68, 0.15);
             color: #f87171;
@@ -861,6 +912,16 @@
             }
         }
 
+        function getEmaPositionClass(position) {
+            const pos = position.toLowerCase();
+            if (pos.includes('debajo de todas')) return 'below-all';
+            if (pos.includes('entre ema200 y ema100')) return 'between-200-100';
+            if (pos.includes('entre ema100 y ema50')) return 'between-100-50';
+            if (pos.includes('entre ema50 y ema20')) return 'between-50-20';
+            if (pos.includes('sobre todas')) return 'above-all';
+            return 'other';
+        }
+
         function renderTable() {
             const tbody = document.getElementById('stockTable');
             tbody.innerHTML = marketData.map(stock => `
@@ -883,7 +944,7 @@
                             <span class="level-number">${stock.nivelLC}</span>
                         </div>
                     </td>
-                    <td style="font-size: 13px; color: #10b981;">${stock.smaPosition}</td>
+                    <td><span class="ema-position ${getEmaPositionClass(stock.smaPosition)}">${stock.smaPosition}</span></td>
                     <td><button class="delete-btn" onclick="deleteTicker('${stock.ticker}')">Eliminar</button></td>
                 </tr>
             `).join('');
