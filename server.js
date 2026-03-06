@@ -1,4 +1,4 @@
-// server.js - Con verificación simple (1 llamada)
+// server.js - Con sistema de backup automático
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -6,10 +6,12 @@ const bcrypt = require('bcryptjs');
 const fetch = require('node-fetch');
 const { Pool } = require('pg');
 const path = require('path');
+const fs = require('fs').promises;
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'stock_scanner_super_secreto_12345';
+const BACKUP_FILE = path.join(__dirname, 'tickers_backup.json');
 
 app.use(cors());
 app.use(express.json());
@@ -19,6 +21,44 @@ const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: process.env.NODE_ENV === 'production' ? { rejectUnauthorized: false } : false
 });
+
+// SISTEMA DE BACKUP
+async function loadBackup() {
+    try {
+        const data = await fs.readFile(BACKUP_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch (error) {
+        console.log('📂 No hay backup previo, creando nuevo...');
+        return {};
+    }
+}
+
+async function saveBackup(backupData) {
+    try {
+        await fs.writeFile(BACKUP_FILE, JSON.stringify(backupData, null, 2));
+        console.log('💾 Backup guardado exitosamente');
+    } catch (error) {
+        console.error('❌ Error guardando backup:', error);
+    }
+}
+
+async function backupUserTickers(userId, tickers) {
+    const backup = await loadBackup();
+    backup[userId] = {
+        tickers: tickers,
+        lastUpdate: new Date().toISOString()
+    };
+    await saveBackup(backup);
+}
+
+async function restoreUserTickers(userId) {
+    const backup = await loadBackup();
+    if (backup[userId]) {
+        console.log(`🔄 Restaurando tickers desde backup para usuario ${userId}`);
+        return backup[userId].tickers;
+    }
+    return null;
+}
 
 app.get('/api/setup-admin', async (req, res) => {
     try {
@@ -80,9 +120,7 @@ function authenticateAdmin(req, res, next) {
     });
 }
 
-// FUNCIÓN SIMPLE - UNA SOLA LLAMADA
 async function getYahooData(ticker) {
-    // Método 1: Query1 directo
     try {
         const url = `https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d&includePrePost=false`;
         const response = await fetch(url, {
@@ -107,7 +145,6 @@ async function getYahooData(ticker) {
         console.log(`❌ Query1 falló para ${ticker}`);
     }
 
-    // Método 2: Proxy como backup
     try {
         const yahooUrl = encodeURIComponent(`https://query1.finance.yahoo.com/v8/finance/chart/${ticker}?range=1y&interval=1d`);
         const url = `https://api.allorigins.win/get?url=${yahooUrl}`;
@@ -366,23 +403,55 @@ app.post('/api/admin/extend-trial', authenticateAdmin, async (req, res) => {
 app.get('/api/tickers', authenticateToken, async (req, res) => {
     try {
         const result = await pool.query('SELECT ticker FROM user_tickers WHERE user_id = $1', [req.user.id]);
-        const tickers = result.rows.length > 0 ? result.rows.map(r => r.ticker) : ['AAPL', 'MSFT', 'GOOGL'];
-        res.json({ tickers });
+        
+        if (result.rows.length > 0) {
+            const tickers = result.rows.map(r => r.ticker);
+            // Hacer backup cada vez que se cargan tickers
+            await backupUserTickers(req.user.id, tickers);
+            res.json({ tickers });
+        } else {
+            // Intentar restaurar desde backup
+            const backupTickers = await restoreUserTickers(req.user.id);
+            if (backupTickers) {
+                // Restaurar en la base de datos
+                for (const ticker of backupTickers) {
+                    await pool.query('INSERT INTO user_tickers (user_id, ticker) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, ticker]);
+                }
+                res.json({ tickers: backupTickers });
+            } else {
+                // No hay backup, usar defaults
+                const defaultTickers = ['AAPL', 'MSFT', 'GOOGL'];
+                res.json({ tickers: defaultTickers });
+            }
+        }
     } catch (error) {
-        res.json({ tickers: ['AAPL', 'MSFT', 'GOOGL'] });
+        console.error('Error obteniendo tickers:', error);
+        // Intentar restaurar desde backup en caso de error
+        const backupTickers = await restoreUserTickers(req.user.id);
+        res.json({ tickers: backupTickers || ['AAPL', 'MSFT', 'GOOGL'] });
     }
 });
 
 app.post('/api/tickers', authenticateToken, async (req, res) => {
     try {
         const { tickers } = req.body;
+        
+        // Guardar en base de datos
         await pool.query('DELETE FROM user_tickers WHERE user_id = $1', [req.user.id]);
         for (const ticker of tickers) {
             await pool.query('INSERT INTO user_tickers (user_id, ticker) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, ticker]);
         }
-        res.json({ message: 'Tickers guardados', tickers });
+        
+        // BACKUP AUTOMÁTICO
+        await backupUserTickers(req.user.id, tickers);
+        console.log(`💾 Backup creado para usuario ${req.user.id}: ${tickers.length} tickers`);
+        
+        res.json({ message: 'Tickers guardados y respaldados', tickers });
     } catch (error) {
-        res.status(500).json({ message: 'Error guardando tickers' });
+        console.error('Error guardando tickers:', error);
+        // Aún así intentar hacer backup
+        await backupUserTickers(req.user.id, req.body.tickers);
+        res.status(500).json({ message: 'Error guardando tickers, pero backup creado' });
     }
 });
 
@@ -434,6 +503,7 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Verificación simple`);
+    console.log(`📊 Stock Scanner Pro - Con sistema de backup automático`);
+    console.log(`💾 Backup file: ${BACKUP_FILE}`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
