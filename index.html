@@ -137,6 +137,67 @@
             z-index: 1;
         }
 
+        /* PANEL DE NOTICIAS DEL MERCADO */
+        .news-panel {
+            background: rgba(30, 41, 59, 0.6);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            border-radius: 16px;
+            padding: 24px;
+            margin-bottom: 24px;
+            box-shadow: 0 8px 32px rgba(236, 72, 153, 0.2);
+        }
+
+        .news-panel h2 {
+            font-size: 18px;
+            font-weight: 700;
+            background: linear-gradient(135deg, #ec4899 0%, #f59e0b 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .news-list {
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .news-item {
+            background: rgba(15, 23, 42, 0.6);
+            padding: 12px 16px;
+            border-radius: 8px;
+            border-left: 3px solid #ec4899;
+            transition: all 0.3s;
+        }
+
+        .news-item:hover {
+            background: rgba(15, 23, 42, 0.8);
+            transform: translateX(4px);
+        }
+
+        .news-item a {
+            color: #e2e8f0;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 600;
+            display: block;
+        }
+
+        .news-item a:hover {
+            color: #ec4899;
+        }
+
+        .news-source {
+            color: #94a3b8;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
         .stats-bar {
             background: rgba(30, 41, 59, 0.6);
             backdrop-filter: blur(12px);
@@ -410,7 +471,6 @@
             color: #cbd5e1;
         }
 
-        /* EMA Position Colors - NUEVOS COLORES */
         .ema-position {
             font-size: 13px;
             font-weight: 700;
@@ -419,46 +479,60 @@
             display: inline-block;
         }
 
-        /* Debajo de todas = Muy Favorable = Verde brillante */
         .ema-position.below-all {
             background: rgba(16, 185, 129, 0.2);
             color: #34d399;
             border: 1px solid rgba(16, 185, 129, 0.4);
         }
 
-        /* Entre 200-100 = Favorable = Verde claro */
         .ema-position.between-200-100 {
             background: rgba(16, 185, 129, 0.15);
             color: #6ee7b7;
             border: 1px solid rgba(16, 185, 129, 0.3);
         }
 
-        /* Entre 100-50 = Interesante = Azul */
         .ema-position.between-100-50 {
             background: rgba(59, 130, 246, 0.2);
             color: #60a5fa;
             border: 1px solid rgba(59, 130, 246, 0.4);
         }
 
-        /* Entre 50-20 = A Considerar = Amarillo */
         .ema-position.between-50-20 {
             background: rgba(245, 158, 11, 0.2);
             color: #fbbf24;
             border: 1px solid rgba(245, 158, 11, 0.4);
         }
 
-        /* Sobre todas = No Favorable = Rojo */
         .ema-position.above-all {
             background: rgba(239, 68, 68, 0.2);
             color: #f87171;
             border: 1px solid rgba(239, 68, 68, 0.4);
         }
 
-        /* Otros casos = Gris */
         .ema-position.other {
             background: rgba(100, 116, 139, 0.2);
             color: #94a3b8;
             border: 1px solid rgba(100, 116, 139, 0.3);
+        }
+
+        /* BOTÓN DE NOTICIAS */
+        .news-btn {
+            background: rgba(236, 72, 153, 0.2);
+            color: #f472b6;
+            border: 1px solid rgba(236, 72, 153, 0.3);
+            padding: 8px 16px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 700;
+            font-size: 13px;
+            transition: all 0.3s;
+            margin-right: 8px;
+        }
+
+        .news-btn:hover {
+            background: rgba(236, 72, 153, 0.3);
+            border-color: rgba(236, 72, 153, 0.5);
+            transform: translateY(-2px);
         }
 
         .delete-btn {
@@ -477,6 +551,66 @@
             background: rgba(239, 68, 68, 0.25);
             border-color: rgba(239, 68, 68, 0.5);
             transform: translateY(-2px);
+        }
+
+        /* MODAL DE NOTICIAS */
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            z-index: 200;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: rgba(30, 41, 59, 0.95);
+            backdrop-filter: blur(16px);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+            border-radius: 16px;
+            padding: 32px;
+            max-width: 600px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+            position: relative;
+        }
+
+        .modal-close {
+            position: absolute;
+            top: 16px;
+            right: 16px;
+            background: rgba(239, 68, 68, 0.2);
+            color: #f87171;
+            border: none;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 20px;
+            transition: all 0.3s;
+        }
+
+        .modal-close:hover {
+            background: rgba(239, 68, 68, 0.3);
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 800;
+            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 24px;
         }
 
         .login-container {
@@ -641,7 +775,7 @@
     </style>
 </head>
 <body>
-    <div id="loginScreen" class="login-container">
+<div id="loginScreen" class="login-container">
         <div class="login-box">
             <div class="login-logo">Stock Scanner Pro</div>
             <div class="login-subtitle">Análisis técnico en tiempo real</div>
@@ -687,6 +821,14 @@
         </div>
 
         <div class="container">
+            <!-- PANEL DE NOTICIAS DEL MERCADO -->
+            <div class="news-panel">
+                <h2>📰 Noticias del Mercado</h2>
+                <div class="news-list" id="marketNewsList">
+                    <div style="color: #64748b; text-align: center; padding: 20px;">Cargando noticias...</div>
+                </div>
+            </div>
+
             <div class="stats-bar">
                 <div class="update-info">
                     <strong>Última actualización:</strong> <span id="lastUpdate">Cargando...</span>
@@ -734,6 +876,17 @@
                         </tr>
                     </tbody>
                 </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE NOTICIAS -->
+    <div id="newsModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeNewsModal()">×</button>
+            <h2 class="modal-title" id="modalTitle">Noticias</h2>
+            <div id="modalNewsList" class="news-list">
+                <div style="color: #64748b; text-align: center; padding: 20px;">Cargando noticias...</div>
             </div>
         </div>
     </div>
@@ -860,6 +1013,7 @@
             badge.textContent = currentUser.subscription.status === 'trial' ? 'Prueba Gratis' : 'Activo';
             badge.className = `subscription-badge ${currentUser.subscription.status}`;
 
+            loadMarketNews();
             loadTickers();
             startAutoUpdate();
         }
@@ -878,6 +1032,74 @@
             errorDiv.textContent = message;
             errorDiv.classList.add('show');
             setTimeout(() => errorDiv.classList.remove('show'), 5000);
+        }
+
+        async function loadMarketNews() {
+            try {
+                const response = await fetch(`${API_URL}/market-news`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                const data = await response.json();
+                
+                const newsList = document.getElementById('marketNewsList');
+                if (data.news && data.news.length > 0) {
+                    newsList.innerHTML = data.news.map(news => `
+                        <div class="news-item">
+                            <a href="${news.url}" target="_blank">${news.title}</a>
+                            <div class="news-source">${news.source} • ${formatTime(news.publishedAt)}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    newsList.innerHTML = '<div style="color: #64748b; text-align: center; padding: 20px;">No hay noticias disponibles</div>';
+                }
+            } catch (error) {
+                console.error('Error cargando noticias del mercado:', error);
+            }
+        }
+
+        async function showTickerNews(ticker) {
+            const modal = document.getElementById('newsModal');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalNewsList = document.getElementById('modalNewsList');
+            
+            modalTitle.textContent = `📰 Noticias de ${ticker}`;
+            modalNewsList.innerHTML = '<div style="color: #64748b; text-align: center; padding: 20px;">Cargando noticias...</div>';
+            modal.classList.add('show');
+
+            try {
+                const response = await fetch(`${API_URL}/ticker-news/${ticker}`, {
+                    headers: { 'Authorization': `Bearer ${userToken}` }
+                });
+                const data = await response.json();
+                
+                if (data.news && data.news.length > 0) {
+                    modalNewsList.innerHTML = data.news.map(news => `
+                        <div class="news-item">
+                            <a href="${news.url}" target="_blank">${news.title}</a>
+                            <div class="news-source">${news.source} • ${formatTime(news.publishedAt)}</div>
+                        </div>
+                    `).join('');
+                } else {
+                    modalNewsList.innerHTML = '<div style="color: #64748b; text-align: center; padding: 20px;">No hay noticias disponibles para este ticker</div>';
+                }
+            } catch (error) {
+                console.error('Error cargando noticias del ticker:', error);
+                modalNewsList.innerHTML = '<div style="color: #f87171; text-align: center; padding: 20px;">Error cargando noticias</div>';
+            }
+        }
+
+        function closeNewsModal() {
+            document.getElementById('newsModal').classList.remove('show');
+        }
+
+        function formatTime(timestamp) {
+            const date = new Date(timestamp);
+            const now = new Date();
+            const diff = Math.floor((now - date) / 1000);
+            
+            if (diff < 3600) return `hace ${Math.floor(diff / 60)} min`;
+            if (diff < 86400) return `hace ${Math.floor(diff / 3600)} h`;
+            return `hace ${Math.floor(diff / 86400)} días`;
         }
 
         async function loadTickers() {
@@ -945,7 +1167,10 @@
                         </div>
                     </td>
                     <td><span class="ema-position ${getEmaPositionClass(stock.smaPosition)}">${stock.smaPosition}</span></td>
-                    <td><button class="delete-btn" onclick="deleteTicker('${stock.ticker}')">Eliminar</button></td>
+                    <td>
+                        <button class="news-btn" onclick="showTickerNews('${stock.ticker}')">📰 Noticias</button>
+                        <button class="delete-btn" onclick="deleteTicker('${stock.ticker}')">Eliminar</button>
+                    </td>
                 </tr>
             `).join('');
         }
@@ -1001,6 +1226,7 @@
         function startAutoUpdate() {
             updateInterval = setInterval(() => {
                 loadTickers();
+                loadMarketNews();
             }, 5 * 60 * 1000);
         }
 
@@ -1015,6 +1241,12 @@
             });
             document.getElementById('lastUpdate').textContent = time;
         }
+
+        document.getElementById('newsModal').addEventListener('click', (e) => {
+            if (e.target.id === 'newsModal') {
+                closeNewsModal();
+            }
+        });
     </script>
 </body>
 </html>

@@ -1,4 +1,4 @@
-// server.js - Con sistema de backup automático
+// server.js - Con noticias integradas
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -12,6 +12,10 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 const JWT_SECRET = process.env.JWT_SECRET || 'stock_scanner_super_secreto_12345';
 const BACKUP_FILE = path.join(__dirname, 'tickers_backup.json');
+
+// API KEYS
+const FINNHUB_API_KEY = 'd6tfio9r01qhkb4402egd6tfio9r01qhkb4402f0';
+const NEWSAPI_KEY = '9f708c7b200b424789f93a2d9d1e6412';
 
 app.use(cors());
 app.use(express.json());
@@ -58,6 +62,79 @@ async function restoreUserTickers(userId) {
         return backup[userId].tickers;
     }
     return null;
+}
+
+// TRADUCCIÓN AUTOMÁTICA (usando MyMemory API - gratis)
+async function translateToSpanish(text) {
+    try {
+        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`;
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.responseData && data.responseData.translatedText) {
+            return data.responseData.translatedText;
+        }
+        return text; // Si falla, devolver original
+    } catch (error) {
+        console.error('Error traduciendo:', error);
+        return text;
+    }
+}
+
+// OBTENER NOTICIAS DEL MERCADO (en español)
+async function getMarketNews() {
+    try {
+        const url = `https://newsapi.org/v2/top-headlines?country=us&category=business&language=es&apiKey=${NEWSAPI_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data.status === 'ok' && data.articles) {
+            return data.articles.slice(0, 5).map(article => ({
+                title: article.title,
+                source: article.source.name,
+                url: article.url,
+                publishedAt: article.publishedAt
+            }));
+        }
+        return [];
+    } catch (error) {
+        console.error('Error obteniendo noticias del mercado:', error);
+        return [];
+    }
+}
+
+// OBTENER NOTICIAS POR TICKER (Finnhub + traducción)
+async function getTickerNews(ticker) {
+    try {
+        const today = new Date();
+        const lastWeek = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
+        const fromDate = lastWeek.toISOString().split('T')[0];
+        const toDate = today.toISOString().split('T')[0];
+        
+        const url = `https://finnhub.io/api/v1/company-news?symbol=${ticker}&from=${fromDate}&to=${toDate}&token=${FINNHUB_API_KEY}`;
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        if (data && Array.isArray(data)) {
+            const topNews = data.slice(0, 5);
+            const translatedNews = [];
+            
+            for (const news of topNews) {
+                const translatedTitle = await translateToSpanish(news.headline);
+                translatedNews.push({
+                    title: translatedTitle,
+                    source: news.source,
+                    url: news.url,
+                    publishedAt: new Date(news.datetime * 1000).toISOString()
+                });
+            }
+            
+            return translatedNews;
+        }
+        return [];
+    } catch (error) {
+        console.error(`Error obteniendo noticias de ${ticker}:`, error);
+        return [];
+    }
 }
 
 app.get('/api/setup-admin', async (req, res) => {
@@ -252,24 +329,46 @@ function getSMAPosition(price, ema20, ema50, ema100, ema200) {
         return 'Sobre todas las EMA (20,50,100,200)';
     }
 
-    if (price > ema200 && price < ema100) {
+    if (price > ema200 && price <= ema100) {
         return 'Entre EMA200 y EMA100';
     }
 
-    if (price > ema100 && price < ema50) {
+    if (price > ema100 && price <= ema50) {
         return 'Entre EMA100 y EMA50';
     }
 
-    if (price > ema50 && price < ema20) {
+    if (price > ema50 && price <= ema20) {
         return 'Entre EMA50 y EMA20';
     }
 
     if (price > ema200) {
-        return 'Sobre EMA200 (zona de fortaleza)';
+        return 'Posición mixta entre EMAs';
     }
 
     return 'Posición mixta entre EMAs';
 }
+
+// ENDPOINTS DE NOTICIAS
+app.get('/api/market-news', authenticateToken, async (req, res) => {
+    try {
+        const news = await getMarketNews();
+        res.json({ news });
+    } catch (error) {
+        console.error('Error obteniendo noticias del mercado:', error);
+        res.status(500).json({ news: [] });
+    }
+});
+
+app.get('/api/ticker-news/:ticker', authenticateToken, async (req, res) => {
+    try {
+        const { ticker } = req.params;
+        const news = await getTickerNews(ticker);
+        res.json({ news });
+    } catch (error) {
+        console.error(`Error obteniendo noticias de ${req.params.ticker}:`, error);
+        res.status(500).json({ news: [] });
+    }
+});
 
 app.post('/api/auth/register', async (req, res) => {
     try {
@@ -406,27 +505,22 @@ app.get('/api/tickers', authenticateToken, async (req, res) => {
         
         if (result.rows.length > 0) {
             const tickers = result.rows.map(r => r.ticker);
-            // Hacer backup cada vez que se cargan tickers
             await backupUserTickers(req.user.id, tickers);
             res.json({ tickers });
         } else {
-            // Intentar restaurar desde backup
             const backupTickers = await restoreUserTickers(req.user.id);
             if (backupTickers) {
-                // Restaurar en la base de datos
                 for (const ticker of backupTickers) {
                     await pool.query('INSERT INTO user_tickers (user_id, ticker) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, ticker]);
                 }
                 res.json({ tickers: backupTickers });
             } else {
-                // No hay backup, usar defaults
                 const defaultTickers = ['AAPL', 'MSFT', 'GOOGL'];
                 res.json({ tickers: defaultTickers });
             }
         }
     } catch (error) {
         console.error('Error obteniendo tickers:', error);
-        // Intentar restaurar desde backup en caso de error
         const backupTickers = await restoreUserTickers(req.user.id);
         res.json({ tickers: backupTickers || ['AAPL', 'MSFT', 'GOOGL'] });
     }
@@ -436,20 +530,17 @@ app.post('/api/tickers', authenticateToken, async (req, res) => {
     try {
         const { tickers } = req.body;
         
-        // Guardar en base de datos
         await pool.query('DELETE FROM user_tickers WHERE user_id = $1', [req.user.id]);
         for (const ticker of tickers) {
             await pool.query('INSERT INTO user_tickers (user_id, ticker) VALUES ($1, $2) ON CONFLICT DO NOTHING', [req.user.id, ticker]);
         }
         
-        // BACKUP AUTOMÁTICO
         await backupUserTickers(req.user.id, tickers);
         console.log(`💾 Backup creado para usuario ${req.user.id}: ${tickers.length} tickers`);
         
         res.json({ message: 'Tickers guardados y respaldados', tickers });
     } catch (error) {
         console.error('Error guardando tickers:', error);
-        // Aún así intentar hacer backup
         await backupUserTickers(req.user.id, req.body.tickers);
         res.status(500).json({ message: 'Error guardando tickers, pero backup creado' });
     }
@@ -503,7 +594,9 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Con sistema de backup automático`);
+    console.log(`📊 Stock Scanner Pro - Con noticias integradas`);
+    console.log(`📰 Finnhub API: Conectada`);
+    console.log(`📰 NewsAPI: Conectada`);
     console.log(`💾 Backup file: ${BACKUP_FILE}`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
