@@ -1,4 +1,4 @@
-// server.js - Con noticias integradas
+// server.js - Noticias en español SIN traducción
 const express = require('express');
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
@@ -64,26 +64,11 @@ async function restoreUserTickers(userId) {
     return null;
 }
 
-// TRADUCCIÓN AUTOMÁTICA (usando MyMemory API - gratis)
-async function translateToSpanish(text) {
-    try {
-        const url = `https://api.mymemory.translated.net/get?q=${encodeURIComponent(text)}&langpair=en|es`;
-        const response = await fetch(url);
-        const data = await response.json();
-        if (data.responseData && data.responseData.translatedText) {
-            return data.responseData.translatedText;
-        }
-        return text; // Si falla, devolver original
-    } catch (error) {
-        console.error('Error traduciendo:', error);
-        return text;
-    }
-}
-
-// OBTENER NOTICIAS DEL MERCADO (en español)
+// OBTENER NOTICIAS DEL MERCADO USA EN ESPAÑOL (sin traducción)
 async function getMarketNews() {
     try {
-        const url = `https://newsapi.org/v2/top-headlines?country=us&category=business&language=es&apiKey=${NEWSAPI_KEY}`;
+        // Buscar noticias financieras de EE.UU. en español
+        const url = `https://newsapi.org/v2/everything?q=(Wall Street OR Nasdaq OR "S%26P 500" OR "bolsa americana" OR "mercados estadounidenses" OR Fed OR "Reserva Federal")&language=es&sortBy=publishedAt&pageSize=10&apiKey=${NEWSAPI_KEY}`;
         const response = await fetch(url);
         const data = await response.json();
         
@@ -102,7 +87,7 @@ async function getMarketNews() {
     }
 }
 
-// OBTENER NOTICIAS POR TICKER (Finnhub + traducción)
+// OBTENER NOTICIAS POR TICKER EN INGLÉS (Finnhub - SIN traducir)
 async function getTickerNews(ticker) {
     try {
         const today = new Date();
@@ -116,19 +101,12 @@ async function getTickerNews(ticker) {
         
         if (data && Array.isArray(data)) {
             const topNews = data.slice(0, 5);
-            const translatedNews = [];
-            
-            for (const news of topNews) {
-                const translatedTitle = await translateToSpanish(news.headline);
-                translatedNews.push({
-                    title: translatedTitle,
-                    source: news.source,
-                    url: news.url,
-                    publishedAt: new Date(news.datetime * 1000).toISOString()
-                });
-            }
-            
-            return translatedNews;
+            return topNews.map(news => ({
+                title: news.headline, // SIN TRADUCIR
+                source: news.source,
+                url: news.url,
+                publishedAt: new Date(news.datetime * 1000).toISOString()
+            }));
         }
         return [];
     } catch (error) {
@@ -594,9 +572,9 @@ app.post('/api/market-data', authenticateToken, async (req, res) => {
 
 app.listen(PORT, () => {
     console.log(`✅ Servidor corriendo en puerto ${PORT}`);
-    console.log(`📊 Stock Scanner Pro - Con noticias integradas`);
-    console.log(`📰 Finnhub API: Conectada`);
-    console.log(`📰 NewsAPI: Conectada`);
+    console.log(`📊 Stock Scanner Pro - Noticias en español SIN traducción`);
+    console.log(`📰 Finnhub API: Noticias de tickers EN INGLÉS`);
+    console.log(`📰 NewsAPI: Noticias del mercado USA EN ESPAÑOL`);
     console.log(`💾 Backup file: ${BACKUP_FILE}`);
     console.log(`🔧 Para crear admin: GET /api/setup-admin`);
 });
